@@ -40,10 +40,38 @@ def run_tests():
     status = "PASSED" if response.status_code == 200 else "FAILED"
     results.append(("GET /api/geospatial/zones", status, response.status_code, response.json() if status=="PASSED" else response.text))
 
-    # Test 6: POST /api/chat
-    response = client.post("/api/chat", json={"intent_json": {"intent": "fishing_safety"}})
+    # Test 6: POST /api/chat (Bhashini Fallback Test)
+    response = client.post("/api/chat", data={"text": "test query"})
     status = "PASSED" if response.status_code == 200 else "FAILED"
-    results.append(("POST /api/chat", status, response.status_code, response.json() if status=="PASSED" else response.text))
+    payload = response.json() if response.status_code == 200 else response.text
+    if status == "PASSED":
+        try:
+            intent = payload.get("received_intent", {})
+            assert intent.get("language_detected") == "mr-IN"
+            assert intent.get("intent") == "fishing_safety"
+        except AssertionError:
+            status = "FAILED"
+            payload = "Assertion Error: Fallback JSON structure invalid."
+    results.append(("POST /api/chat (Bhashini)", status, response.status_code, payload))
+
+    # Test 6.5: Evidence Engine Component Test
+    from agents.evidence_engine import EvidenceEngine
+    engine = EvidenceEngine()
+    engine_status = "PASSED"
+    try:
+        rec = engine.synthesize_recommendation({
+            "metrics": {"sst_trend": "+1C", "chlorophyll_trend": "-0.5"}, 
+            "source": "test_src", 
+            "confidence": 0.99
+        })
+        assert "metadata" in rec
+        assert "timestamp" in rec["metadata"]
+        assert rec["metadata"]["confidence"] == 0.99
+        assert "possible contributing factors" in rec["recommendation"]
+    except Exception as e:
+        engine_status = "FAILED"
+        rec = str(e)
+    results.append(("Evidence Engine (Component)", engine_status, "N/A", rec))
 
     # Test 7: GET /api/data-sources/catalog
     response = client.get("/api/data-sources/catalog")
