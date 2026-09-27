@@ -37,10 +37,31 @@ from sqlalchemy import create_engine
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///orca_cache.db")
 engine = create_engine(DATABASE_URL)
 
+class DBConnectionProxy:
+    def __init__(self, raw_conn, is_postgres):
+        self.raw_conn = raw_conn
+        self.is_postgres = is_postgres
+
+    def execute(self, sql, params=None):
+        cursor = self.raw_conn.cursor()
+        if self.is_postgres:
+            sql = sql.replace("?", "%s")
+        if params:
+            cursor.execute(sql, params)
+        else:
+            cursor.execute(sql)
+        return cursor
+
+    def commit(self):
+        self.raw_conn.commit()
+
+    def close(self):
+        self.raw_conn.close()
+
 def get_connection():
     """Create a connection to the ORCA database."""
-    # Ensure backwards compatibility if legacy code expects raw DBAPI connection
-    return engine.raw_connection()
+    is_postgres = "postgres" in str(engine.url)
+    return DBConnectionProxy(engine.raw_connection(), is_postgres)
 
 
 def ensure_sar_evidence_metadata():
@@ -51,35 +72,19 @@ def ensure_sar_evidence_metadata():
     new source timestamp and confidence fields.
     """
 
-    conn = get_connection()
+    from sqlalchemy import inspect, text
+    
+    inspector = inspect(engine)
+    if not inspector.has_table("sar_evidence"):
+        return
+        
+    columns = [col['name'] for col in inspector.get_columns("sar_evidence")]
 
-    columns = conn.execute(
-        "PRAGMA table_info(sar_evidence)"
-    ).fetchall()
-
-    existing_columns = {
-        column[1]
-        for column in columns
-    }
-
-    if "source_timestamp" not in existing_columns:
-        conn.execute(
-            """
-            ALTER TABLE sar_evidence
-            ADD COLUMN source_timestamp TEXT
-            """
-        )
-
-    if "confidence" not in existing_columns:
-        conn.execute(
-            """
-            ALTER TABLE sar_evidence
-            ADD COLUMN confidence REAL
-            """
-        )
-
-    conn.commit()
-    conn.close()
+    with engine.begin() as conn:
+        if "source_timestamp" not in columns:
+            conn.execute(text("ALTER TABLE sar_evidence ADD COLUMN source_timestamp TEXT"))
+        if "confidence" not in columns:
+            conn.execute(text("ALTER TABLE sar_evidence ADD COLUMN confidence REAL"))
 
 
 @app.on_event("startup")
