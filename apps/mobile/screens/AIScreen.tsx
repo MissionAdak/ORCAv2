@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { MarineService } from '../services/marineService';
+import { Audio } from 'expo-av';
 
 export default function AIScreen() {
   const { colors, typography } = useTheme();
@@ -14,6 +15,9 @@ export default function AIScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [responsePayload, setResponsePayload] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
@@ -35,9 +39,60 @@ export default function AIScreen() {
     }
   };
 
-  const handleMicPress = () => {
-    // Placeholder for actual audio recording logic
-    Alert.alert("Listening...", "Voice recording logic will be integrated here.");
+  const startRecording = async () => {
+    try {
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(recording);
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Failed to start recording', err);
+      Alert.alert("Error", "Failed to start recording");
+    }
+  };
+
+  const stopRecording = async () => {
+    setRecording(null);
+    setIsRecording(false);
+    
+    if (recording) {
+      await recording.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+      });
+      const uri = recording.getURI();
+      
+      if (uri) {
+        handleSendVoice(uri);
+      }
+    }
+  };
+
+  const handleSendVoice = async (uri: string) => {
+    setIsLoading(true);
+    setError(null);
+    setResponsePayload(null);
+    try {
+      const audioFile = {
+        uri: uri,
+        name: 'recording.m4a',
+        type: 'audio/m4a',
+      };
+      const res = await MarineService.sendChatIntent(audioFile);
+      setResponsePayload(res);
+    } catch (err) {
+      console.error("AI request failed:", err);
+      setError("Failed to connect to AI Service. Falling back to offline cache...");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -78,7 +133,7 @@ export default function AIScreen() {
           <ActivityIndicator size="large" color={colors.accentBlue} style={{ marginLeft: 16 }} />
         ) : (
           <View style={styles.actions}>
-            <Button title="Mic" onPress={handleMicPress} variant="secondary" />
+            <Button title={isRecording ? "Stop" : "Mic"} onPress={isRecording ? stopRecording : startRecording} variant="secondary" />
             <View style={{ width: 8 }} />
             <Button title="Send" onPress={handleSend} variant="primary" />
           </View>

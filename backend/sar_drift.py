@@ -11,11 +11,18 @@ def predict_drift(
     wind_speed_knots,
     wind_direction_degrees,
     hours,
+    object_type="drifting_vessel",
 ):
     """Predict drift position using current, wind and uncertainty."""
+    
+    leeway_multiplier = 0.03
+    if object_type == "person_in_water":
+        leeway_multiplier = 0.01
+    elif object_type == "life_raft":
+        leeway_multiplier = 0.04
 
     current_distance_km = current_speed_knots * 1.852 * hours
-    wind_distance_km = wind_speed_knots * 1.852 * hours * 0.03
+    wind_distance_km = wind_speed_knots * 1.852 * hours * leeway_multiplier
 
     current_lat = latitude + (
         current_distance_km

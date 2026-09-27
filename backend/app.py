@@ -109,8 +109,10 @@ class GeofenceRequest(BaseModel):
 
 
 class SARCreateRequest(BaseModel):
-    latitude: float
-    longitude: float
+    last_known_lat: float
+    last_known_lon: float
+    object_type: str
+    people_count: int
 
 
 class PFZRequest(BaseModel):
@@ -219,8 +221,8 @@ def check_geofence(request: GeofenceRequest):
 def check_eez(request: SARCreateRequest):
 
     return point_in_eez(
-        request.latitude,
-        request.longitude,
+        request.last_known_lat,
+        request.last_known_lon,
     )
 
 
@@ -288,14 +290,18 @@ def create_sar_incident(request: SARCreateRequest):
         (
             status,
             last_known_latitude,
-            last_known_longitude
+            last_known_longitude,
+            object_type,
+            people_count
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         """,
         (
             "active",
-            request.latitude,
-            request.longitude,
+            request.last_known_lat,
+            request.last_known_lon,
+            request.object_type,
+            request.people_count,
         ),
     )
 
@@ -307,8 +313,10 @@ def create_sar_incident(request: SARCreateRequest):
     return {
         "incident_id": incident_id,
         "status": "active",
-        "last_known_latitude": request.latitude,
-        "last_known_longitude": request.longitude,
+        "last_known_latitude": request.last_known_lat,
+        "last_known_longitude": request.last_known_lon,
+        "object_type": request.object_type,
+        "people_count": request.people_count,
     }
 
 
@@ -325,7 +333,8 @@ def predict_sar_drift(request: SARDiftRequest):
         """
         SELECT
             last_known_latitude,
-            last_known_longitude
+            last_known_longitude,
+            object_type
         FROM sar_incidents
         WHERE id = ?
         """,
@@ -339,7 +348,7 @@ def predict_sar_drift(request: SARDiftRequest):
             "error": "SAR incident not found"
         }
 
-    latitude, longitude = incident
+    latitude, longitude, object_type = incident
 
     prediction = predict_drift(
         latitude,
@@ -349,6 +358,7 @@ def predict_sar_drift(request: SARDiftRequest):
         request.wind_speed_knots,
         request.wind_direction_degrees,
         request.hours,
+        object_type
     )
 
     conn.execute(
