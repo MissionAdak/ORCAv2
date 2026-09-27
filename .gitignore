@@ -4,3 +4,5 @@ __pycache__/
 .env
 orca_cache
 orca_cache.db
+
+.venv-backend/
