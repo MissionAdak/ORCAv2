@@ -31,9 +31,16 @@ app = APIRouter()
 # Database Helpers
 # ============================================================
 
+import os
+from sqlalchemy import create_engine
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///orca_cache.db")
+engine = create_engine(DATABASE_URL)
+
 def get_connection():
-    """Create a connection to the ORCA SQLite database."""
-    return sqlite3.connect("orca_cache.db")
+    """Create a connection to the ORCA database."""
+    # Ensure backwards compatibility if legacy code expects raw DBAPI connection
+    return engine.raw_connection()
 
 
 def ensure_sar_evidence_metadata():

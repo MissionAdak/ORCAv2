@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+sqlalchemy
+geoalchemy2
+psycopg2-binary
+pydantic
+requests
+python-dotenv
+langgraph
+langchain-ollama
+numpy
+scipy
+shapely
+folium
+geopandas
+matplotlib
+reportlab
