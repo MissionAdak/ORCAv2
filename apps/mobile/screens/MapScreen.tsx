@@ -21,6 +21,14 @@ export default function MapScreen() {
   const [showHazards, setShowHazards] = useState(true);
   const [showIMBL, setShowIMBL] = useState(true);
   const [showRescue, setShowRescue] = useState(true);
+  const [showRoute, setShowRoute] = useState(true);
+
+  // Sea State Metrics
+  const seaState = {
+    windSpeed: '12 knots (NW)',
+    waveLength: '45 meters',
+    waveSpeed: '2.5 m/s'
+  };
 
   const initialRegion = {
     latitude: 19.13,
@@ -58,7 +66,8 @@ export default function MapScreen() {
             pfz: L.layerGroup().addTo(map),
             hazards: L.layerGroup().addTo(map),
             imbl: L.layerGroup().addTo(map),
-            rescue: L.layerGroup().addTo(map)
+            rescue: L.layerGroup().addTo(map),
+            route: L.layerGroup().addTo(map)
         };
 
         // Bridge to React Native
@@ -82,7 +91,7 @@ export default function MapScreen() {
             type: "FeatureCollection",
             features: [{
                 type: "Feature",
-                properties: { name: "High Probability PFZ", type: "pfz", confidence: "92%", source: "INCOIS" },
+                properties: { name: "High Probability Potential Fishing Zone", type: "Potential Fishing Zone", confidence: "92%", source: "INCOIS" },
                 geometry: { type: "Polygon", coordinates: [[[72.75, 19.10], [72.70, 19.15], [72.78, 19.18], [72.80, 19.12], [72.75, 19.10]]] }
             }]
         };
@@ -91,7 +100,7 @@ export default function MapScreen() {
             type: "FeatureCollection",
             features: [{
                 type: "Feature",
-                properties: { name: "IMBL 5nm Buffer", type: "imbl", warning: "Approaching International Waters" },
+                properties: { name: "International Maritime Boundary Line Buffer", type: "Boundary Warning", warning: "Approaching International Waters" },
                 geometry: { type: "LineString", coordinates: [[72.4, 18.9], [72.3, 19.2], [72.2, 19.5]] }
             }]
         };
@@ -114,8 +123,17 @@ export default function MapScreen() {
             }]
         };
 
+        const mockRoute = {
+            type: "FeatureCollection",
+            features: [{
+                type: "Feature",
+                properties: { name: "Safe Navigation Route", type: "route", details: "Computed route avoiding high wave crests" },
+                geometry: { type: "LineString", coordinates: [[72.81, 19.13], [72.78, 19.13], [72.75, 19.15]] }
+            }]
+        };
+
         async function fetchAndRenderData() {
-            // PFZ
+            // Potential Fishing Zones
             try {
                 let res = await fetch('${API_BASE}/api/pfz/nearby?lat=${initialRegion.latitude}&lon=${initialRegion.longitude}');
                 let data = res.ok ? await res.json() : mockPFZ;
@@ -125,12 +143,11 @@ export default function MapScreen() {
                 }).addTo(layerGroups.pfz);
             } catch(e) { console.error(e); }
 
-            // Zones
+            // Zones & Boundaries
             try {
                 let res = await fetch('${API_BASE}/api/geospatial/zones');
                 let data = res.ok ? await res.json() : null;
                 
-                // fallback if missing
                 L.geoJSON(data ? data.imbl : mockIMBL, { 
                     style: { color: '#FF3D00', dashArray: '5, 10', weight: 4 },
                     onEachFeature: buildOnEachFeature()
@@ -147,6 +164,12 @@ export default function MapScreen() {
                 }).addTo(layerGroups.rescue);
 
             } catch(e) { console.error(e); }
+
+            // Navigation Route
+            L.geoJSON(mockRoute, { 
+                style: { color: '#00E676', dashArray: '4, 8', weight: 3 },
+                onEachFeature: buildOnEachFeature()
+            }).addTo(layerGroups.route);
 
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'MAP_LOADED' }));
         }
@@ -193,6 +216,7 @@ export default function MapScreen() {
   useEffect(() => { toggleLayer('hazards', showHazards); }, [showHazards]);
   useEffect(() => { toggleLayer('imbl', showIMBL); }, [showIMBL]);
   useEffect(() => { toggleLayer('rescue', showRescue); }, [showRescue]);
+  useEffect(() => { toggleLayer('route', showRoute); }, [showRoute]);
 
   const handleMessage = (event: any) => {
     try {
@@ -231,12 +255,21 @@ export default function MapScreen() {
         />
       </View>
 
-      {/* Layer Toggles Overlay */}
+      {/* Sea State Metrics Overlay (Top Left) */}
+      <View style={styles.metricsContainer}>
+        <Text style={styles.metricsTitle}>Current Sea State</Text>
+        <Text style={styles.metricsText}>Wind Speed: {seaState.windSpeed}</Text>
+        <Text style={styles.metricsText}>Wave Length: {seaState.waveLength}</Text>
+        <Text style={styles.metricsText}>Wave Speed: {seaState.waveSpeed}</Text>
+      </View>
+
+      {/* Layer Toggles Overlay (Top Right) */}
       <View style={styles.togglesContainer}>
-        <View style={styles.toggleRow}><Switch value={showPFZ} onValueChange={setShowPFZ}/><Text style={styles.toggleText}>PFZ</Text></View>
+        <View style={styles.toggleRow}><Switch value={showPFZ} onValueChange={setShowPFZ}/><Text style={styles.toggleText}>Potential Fishing Zone</Text></View>
         <View style={styles.toggleRow}><Switch value={showHazards} onValueChange={setShowHazards}/><Text style={styles.toggleText}>Alerts</Text></View>
-        <View style={styles.toggleRow}><Switch value={showIMBL} onValueChange={setShowIMBL}/><Text style={styles.toggleText}>IMBL</Text></View>
+        <View style={styles.toggleRow}><Switch value={showIMBL} onValueChange={setShowIMBL}/><Text style={styles.toggleText}>International Maritime Boundary Line</Text></View>
         <View style={styles.toggleRow}><Switch value={showRescue} onValueChange={setShowRescue}/><Text style={styles.toggleText}>Rescue</Text></View>
+        <View style={styles.toggleRow}><Switch value={showRoute} onValueChange={setShowRoute}/><Text style={styles.toggleText}>Safe Route</Text></View>
       </View>
       
       {/* Tap-to-Inspect Bottom Sheet */}
@@ -251,6 +284,7 @@ export default function MapScreen() {
             {selectedFeature.source && <View style={styles.chip}><Text style={styles.chipText}>{selectedFeature.source}</Text></View>}
           </View>
           
+          {selectedFeature.details && <Text style={[typography.bodyMedium, { color: colors.accentBlue, marginBottom: 4 }]}>{selectedFeature.details}</Text>}
           {selectedFeature.confidence && <Text style={[typography.bodyMedium, { color: colors.textMuted }]}>Confidence: {selectedFeature.confidence}</Text>}
           {selectedFeature.severity && <Text style={[typography.bodyMedium, { color: 'red' }]}>Severity: {selectedFeature.severity}</Text>}
           {selectedFeature.warning && <Text style={[typography.bodyMedium, { color: 'orange' }]}>{selectedFeature.warning}</Text>}
@@ -272,16 +306,31 @@ const styles = StyleSheet.create({
   map: { flex: 1, width: '100%', height: '100%' },
   loader: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212', zIndex: 2 },
   
+  metricsContainer: {
+    position: 'absolute',
+    top: 80,
+    left: 16,
+    backgroundColor: 'rgba(20, 20, 20, 0.85)',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333'
+  },
+  metricsTitle: { color: '#00E5FF', fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
+  metricsText: { color: 'white', fontSize: 12, marginBottom: 2 },
+
   togglesContainer: {
     position: 'absolute',
     top: 80,
     right: 16,
-    backgroundColor: 'rgba(30, 30, 30, 0.8)',
+    backgroundColor: 'rgba(30, 30, 30, 0.85)',
     padding: 10,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333'
   },
   toggleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  toggleText: { color: 'white', marginLeft: 8, fontSize: 12, fontWeight: 'bold' },
+  toggleText: { color: 'white', marginLeft: 8, fontSize: 12, fontWeight: 'bold', maxWidth: 120 },
 
   bottomSheet: {
     position: 'absolute',

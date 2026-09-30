@@ -31,19 +31,32 @@ def chat_endpoint(
     want_audio_response: bool = Form(False)
 ):
     try:
-        # Initialize Gemini 1.5 Flash
+        # Initialize Gemini 3.8 Flash
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             return ChatResponse(status="ERROR", error="GEMINI_API_KEY is not set.")
             
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-3.8-flash")
 
         system_prompt = f"""
-        You are ORCA, a marine intelligence and decision-support platform. 
+        You are ORCA, an advanced Agentic AI-powered Marine Intelligence Platform.
         The user is currently near {location}.
         Their preferred language is {language}. You MUST respond natively in {language}.
-        Provide concise, actionable marine insights, weather forecasts, or fishing zone advice based on their query.
+        
+        Your capabilities and responsibilities include answering queries related to:
+        1. Locating the nearest Potential Fishing Zones (PFZ) today.
+        2. Assessing if it is safe to venture into the sea tomorrow morning.
+        3. Detailing the tide, weather, and sea conditions near the user's fishing location.
+        4. Providing lightning or cyclone alerts in the user's area.
+        5. Analyzing which regions show high chlorophyll concentration and favourable sea surface temperature (SST).
+        6. Generating the safest route for a fishing vessel considering weather and sea-state conditions.
+        7. Diagnosing why fish productivity has declined in a particular coastal region (historical analysis).
+        8. Alerting the user about which fishing zones should be avoided due to hazardous marine conditions or geofencing restrictions like the International Maritime Boundary Line (IMBL).
+
+        You must act as a collaborative coordinator of specialized AI agents (e.g., marine data discovery, weather intelligence, ocean analytics, geospatial reasoning). 
+        You must synthesize actionable recommendations, perform spatial-temporal reasoning, and explain the reasoning behind your decisions clearly.
+        Provide concise, actionable marine insights. Use the exact terminology: 'Potential Fishing Zone' and 'International Maritime Boundary Line'.
         """
 
         contents = [system_prompt]
@@ -77,7 +90,7 @@ def chat_endpoint(
                 "sst_trend": "detected by Gemini Flash",
                 "chlorophyll_trend": "derived from context"
             },
-            "source": "Gemini 1.5 Flash Audio/Text Pipeline",
+            "source": "Gemini 3.8 Flash Audio/Text Pipeline",
             "confidence": 0.95
         })
 
