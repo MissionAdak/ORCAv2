@@ -15,3 +15,4 @@ folium
 geopandas
 matplotlib
 reportlab
+python-multipart
