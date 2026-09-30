@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, Callout } from 'react-native-maps';
+import MapView, { Marker, Callout, UrlTile } from 'react-native-maps';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { MarineService } from '../services/marineService';
@@ -46,7 +46,12 @@ export default function MapScreen() {
         <MapView
           style={styles.map}
           initialRegion={initialRegion}
+          provider={null}
         >
+          <UrlTile 
+            urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+            maximumZ={19} 
+          />
           <Marker coordinate={{ latitude: 19.13, longitude: 72.81 }} title="Versova" description="Fishing Zone">
             <Callout>
               <View style={styles.callout}>

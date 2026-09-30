@@ -14,7 +14,7 @@ import base64
 import traceback
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Form, File, UploadFile
 from pydantic import BaseModel
 
 from agents.bhashini_service import BhashiniService
@@ -28,14 +28,6 @@ router = APIRouter()
 _graph = build_graph()  # compiled once at import time, reused across requests
 
 
-class ChatRequest(BaseModel):
-    text: Optional[str] = None
-    audio_base64: Optional[str] = None
-    language: str = "en"
-    location: Optional[str] = None
-    want_audio_response: bool = False
-
-
 class ChatResponse(BaseModel):
     status: str  # "COMPLETE" | "CLARIFICATION" | "ERROR"
     text_response: Optional[str] = None
@@ -45,13 +37,19 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/api/chat", response_model=ChatResponse)
-def chat_endpoint(req: ChatRequest):
+def chat_endpoint(
+    text: Optional[str] = Form(None),
+    audio: Optional[UploadFile] = File(None),
+    language: str = Form("en"),
+    location: Optional[str] = Form("Versova"),
+    want_audio_response: bool = Form(False)
+):
     try:
         # --- 1. ASR: audio -> text, if audio was sent instead of text ---
-        user_text = req.text
-        if not user_text and req.audio_base64:
+        user_text = text
+        if not user_text and audio:
             try:
-                audio_bytes = base64.b64decode(req.audio_base64)
+                audio_bytes = audio.file.read()
                 intent_json = bhashini.process_voice_query(audio_bytes)
                 user_text = intent_json.get("intent", "Help")
             except Exception as e:
@@ -70,7 +68,6 @@ def chat_endpoint(req: ChatRequest):
             english_text = user_text
 
         # --- 3. Location is required by the pipeline ---
-        location = req.location
         if not location:
             return ChatResponse(status="CLARIFICATION", text_response="Which location should I check?")
 
@@ -112,7 +109,7 @@ def chat_endpoint(req: ChatRequest):
             final_text = response_text
 
         audio_b64 = None
-        if req.want_audio_response:
+        if want_audio_response:
             try:
                 # Mocking text_to_audio since it's not in BhashiniService
                 audio_bytes = b"mock_audio_data"

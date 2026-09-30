@@ -248,6 +248,19 @@ def create_pfz(request: PFZRequest):
     )
 
 
+@app.get("/api/alerts/nearby")
+def get_nearby_alerts(lat: float, lon: float, radius_km: float = 50):
+    return [
+        {
+            "id": "alert-1",
+            "type": "hazard",
+            "severity": "High",
+            "message": "High waves and strong winds expected in the selected zone.",
+            "valid_until": "2026-09-30T23:59:59Z"
+        }
+    ]
+
+
 # ============================================================
 # Route Analysis
 # ============================================================

@@ -8,7 +8,7 @@ import {
 
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ||
-  'http://10.0.2.2:8000';
+  'https://orca-backend-tkus.onrender.com';
 
 export async function syncSOSQueue() {
   const network = await NetInfo.fetch();

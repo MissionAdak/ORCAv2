@@ -4,8 +4,8 @@
  * with the offline SQLite cache queue.
  */
 
-// Default Android emulator localhost to access FastAPI
-const BASE_URL = 'http://10.0.2.2:8000'; 
+// Default to Render Production API
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://orca-backend-tkus.onrender.com'; 
 
 import { queueFailedRequest } from '../utils/offlineSync';
 

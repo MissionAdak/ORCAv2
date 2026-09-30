@@ -36,6 +36,19 @@ export const MarineService = {
   },
 
   /**
+   * GET /api/alerts/nearby
+   * Fetches the nearby active alerts.
+   */
+  getNearbyAlerts: async (lat: number, lon: number, radius_km: number = 50) => {
+    const params: Record<string, string> = {
+      lat: lat.toString(),
+      lon: lon.toString(),
+      radius_km: radius_km.toString(),
+    };
+    return apiClient.get('/api/alerts/nearby', params);
+  },
+
+  /**
    * POST /api/sar/create
    * Creates a new Search and Rescue incident.
    */

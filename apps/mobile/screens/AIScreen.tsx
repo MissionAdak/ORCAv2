@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { MarineService } from '../services/marineService';
-import { Audio } from 'expo-av';
+import { useAudioRecorder, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 
 export default function AIScreen() {
   const { colors, typography } = useTheme();
@@ -16,7 +16,7 @@ export default function AIScreen() {
   const [responsePayload, setResponsePayload] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [isRecording, setIsRecording] = useState(false);
 
   const handleSend = async () => {
@@ -27,7 +27,6 @@ export default function AIScreen() {
     setResponsePayload(null);
     
     try {
-      // Sending text (fallback for voice) to MarineService
       const res = await MarineService.sendChatIntent(undefined, inputText);
       setResponsePayload(res);
       setInputText('');
@@ -41,16 +40,13 @@ export default function AIScreen() {
 
   const startRecording = async () => {
     try {
-      await Audio.requestPermissionsAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await requestRecordingPermissionsAsync();
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      setRecording(recording);
+      recorder.record();
       setIsRecording(true);
     } catch (err) {
       console.error('Failed to start recording', err);
@@ -59,15 +55,14 @@ export default function AIScreen() {
   };
 
   const stopRecording = async () => {
-    setRecording(null);
     setIsRecording(false);
     
-    if (recording) {
-      await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
+    if (recorder.isRecording) {
+      await recorder.stop();
+      await setAudioModeAsync({
+        allowsRecording: false,
       });
-      const uri = recording.getURI();
+      const uri = recorder.uri;
       
       if (uri) {
         handleSendVoice(uri);
