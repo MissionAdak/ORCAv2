@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
@@ -40,7 +40,11 @@ export default function AIScreen() {
 
   const startRecording = async () => {
     try {
-      await requestRecordingPermissionsAsync();
+      const permission = await requestRecordingPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission Denied", "Microphone access is required to use Voice AI.");
+        return;
+      }
       await setAudioModeAsync({
         allowsRecording: true,
         playsInSilentMode: true,

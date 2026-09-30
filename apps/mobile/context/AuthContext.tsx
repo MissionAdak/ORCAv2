@@ -8,6 +8,10 @@ export interface AuthUser {
   email?: string;
   role: 'fisher' | 'captain' | 'dispatcher';
   harbor?: string;
+  language?: string;
+  vesselName?: string;
+  vesselId?: string;
+  emergencyContacts?: string[];
 }
 
 interface AuthContextType {
@@ -65,6 +69,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: identifier.includes('@') ? identifier : undefined,
       role: 'fisher',
       harbor: 'Versova',
+      language: 'en',
+      vesselName: 'Sagar Kanya',
+      vesselId: 'IND-MH-1234',
+      emergencyContacts: ['+91-9876543210']
     };
 
     try {
@@ -118,6 +126,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             phone: '9820012345',
             role: 'fisher',
             harbor: 'Versova',
+            vesselName: 'Jal Pari',
+            vesselId: 'MH-04-F-232',
+            emergencyContacts: ['9820054321']
           }
         : {
             id: 'usr-suresh-2',
@@ -125,6 +136,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             phone: '9820098765',
             role: 'captain',
             harbor: 'Sassoon Dock',
+            vesselName: 'Matsya',
+            vesselId: 'MH-01-C-888',
+            emergencyContacts: ['9820098888']
           };
 
     try {

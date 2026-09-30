@@ -18,7 +18,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.mobile",
-      "versionCode": 2
+      "versionCode": 2,
+      "permissions": ["RECORD_AUDIO"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
