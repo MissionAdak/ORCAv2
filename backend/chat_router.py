@@ -37,7 +37,7 @@ def chat_endpoint(
             return ChatResponse(status="ERROR", error="GEMINI_API_KEY is not set.")
             
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
 
         system_prompt = f"""
         You are ORCA, a marine intelligence and decision-support platform. 
