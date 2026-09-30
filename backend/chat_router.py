@@ -81,8 +81,19 @@ def chat_endpoint(
             return ChatResponse(status="CLARIFICATION", text_response="Please provide text or audio input.")
 
         # --- Execute One-Shot Gemini Generation ---
-        response = model.generate_content(contents)
-        final_text = response.text
+        import google.api_core.exceptions
+        import time
+        try:
+            response = model.generate_content(contents)
+            final_text = response.text
+        except google.api_core.exceptions.ResourceExhausted:
+            time.sleep(2)
+            try:
+                model_fallback = genai.GenerativeModel("gemini-2.5-flash")
+                response = model_fallback.generate_content(contents)
+                final_text = response.text
+            except google.api_core.exceptions.ResourceExhausted:
+                return ChatResponse(status="RATE_LIMITED", text_response="AI Agent is processing high marine traffic. Please retry in 30 seconds.")
 
         # --- Wrap with ORCA Standard Data Model Evidence ---
         aggregated = evidence.synthesize_recommendation({

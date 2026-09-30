@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   header: { padding: 16, zIndex: 1, elevation: 2 },
   mapContainer: { flex: 1 },
   map: { flex: 1, width: '100%', height: '100%' },
-  loader: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212', zIndex: 2 },
+  loader: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212', zIndex: 2 },
   
   metricsContainer: {
     position: 'absolute',

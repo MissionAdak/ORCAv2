@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Alert, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -12,17 +12,35 @@ export default function AIScreen() {
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
   const [inputText, setInputText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  
+  // Status: idle | recording | processing
+  const [status, setStatus] = useState<'idle' | 'recording' | 'processing'>('idle');
   const [responsePayload, setResponsePayload] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const [isRecording, setIsRecording] = useState(false);
+  
+  // Visual pulsing indicator for recording
+  const [pulseAnim] = useState(new Animated.Value(1));
+
+  useEffect(() => {
+    if (status === 'recording') {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.5, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
+        ])
+      ).start();
+    } else {
+      pulseAnim.stopAnimation();
+      pulseAnim.setValue(1);
+    }
+  }, [status]);
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
     
-    setIsLoading(true);
+    setStatus('processing');
     setError(null);
     setResponsePayload(null);
     
@@ -34,7 +52,7 @@ export default function AIScreen() {
       console.error("AI request failed:", err);
       setError("Failed to connect to AI Service. Falling back to offline cache...");
     } finally {
-      setIsLoading(false);
+      setStatus('idle');
     }
   };
 
@@ -45,37 +63,51 @@ export default function AIScreen() {
         Alert.alert("Permission Denied", "Microphone access is required to use Voice AI.");
         return;
       }
+      
+      // Ensure the audio mode is configured properly for recording
       await setAudioModeAsync({
         allowsRecording: true,
         playsInSilentMode: true,
       });
 
+      console.log("Audio recording started...");
       recorder.record();
-      setIsRecording(true);
+      setStatus('recording');
     } catch (err) {
-      console.error('Failed to start recording', err);
+      console.error('Failed to start recording:', err);
       Alert.alert("Error", "Failed to start recording");
+      setStatus('idle');
     }
   };
 
   const stopRecording = async () => {
-    setIsRecording(false);
+    if (status !== 'recording') return;
     
-    if (recorder.isRecording) {
+    try {
+      console.log("Audio recording stopped...");
       await recorder.stop();
+      
+      // Revert audio mode after recording is finished
       await setAudioModeAsync({
         allowsRecording: false,
       });
-      const uri = recorder.uri;
       
+      const uri = recorder.uri;
       if (uri) {
+        console.log("Valid audio file generated at URI:", uri);
         handleSendVoice(uri);
+      } else {
+        console.warn("No valid URI returned from recorder.");
+        setStatus('idle');
       }
+    } catch (err) {
+      console.error('Failed to stop recording:', err);
+      setStatus('idle');
     }
   };
 
   const handleSendVoice = async (uri: string) => {
-    setIsLoading(true);
+    setStatus('processing');
     setError(null);
     setResponsePayload(null);
     try {
@@ -84,20 +116,21 @@ export default function AIScreen() {
         name: 'recording.m4a',
         type: 'audio/m4a',
       };
+      console.log("Dispatching audio payload to backend...");
       const res = await MarineService.sendChatIntent(audioFile);
       setResponsePayload(res);
     } catch (err) {
       console.error("AI request failed:", err);
       setError("Failed to connect to AI Service. Falling back to offline cache...");
     } finally {
-      setIsLoading(false);
+      setStatus('idle');
     }
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundDark }]}>
       <Text style={[typography.h2, { color: colors.textPrimary, padding: 16 }]}>
-        {t('nav_ai') || 'Bhashini AI Assistant'}
+        {t('nav_ai') || 'ORCA AI Assistant'}
       </Text>
       
       <ScrollView style={styles.chatArea} contentContainerStyle={styles.chatContent}>
@@ -125,16 +158,28 @@ export default function AIScreen() {
             value={inputText}
             onChangeText={setInputText}
             placeholder="Type your query here..."
+            editable={status === 'idle'}
           />
         </View>
         
-        {isLoading ? (
+        {status === 'processing' ? (
           <ActivityIndicator size="large" color={colors.accentBlue} style={{ marginLeft: 16 }} />
         ) : (
           <View style={styles.actions}>
-            <Button title={isRecording ? "Stop" : "Mic"} onPress={isRecording ? stopRecording : startRecording} variant="secondary" />
+            {status === 'recording' ? (
+              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                <Button 
+                  title="Stop" 
+                  onPress={stopRecording} 
+                  variant="secondary" 
+                  style={{ backgroundColor: 'red', borderColor: 'red' }}
+                />
+              </Animated.View>
+            ) : (
+              <Button title="Mic" onPress={startRecording} variant="secondary" />
+            )}
             <View style={{ width: 8 }} />
-            <Button title="Send" onPress={handleSend} variant="primary" />
+            <Button title="Send" onPress={handleSend} variant="primary" disabled={status !== 'idle'} />
           </View>
         )}
       </View>
