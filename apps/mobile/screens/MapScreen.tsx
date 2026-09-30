@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, Callout, UrlTile } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { MarineService } from '../services/marineService';
@@ -37,38 +37,52 @@ export default function MapScreen() {
     fetchForecast();
   }, []);
 
+  const mapHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Leaflet Map</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <style>
+        body { padding: 0; margin: 0; }
+        html, body, #map { height: 100%; width: 100vw; }
+      </style>
+    </head>
+    <body>
+      <div id="map"></div>
+      <script>
+        var map = L.map('map').setView([${initialRegion.latitude}, ${initialRegion.longitude}], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        
+        L.marker([${initialRegion.latitude}, ${initialRegion.longitude}]).addTo(map)
+            .bindPopup('Versova<br>Fishing Zone').openPopup();
+      </script>
+    </body>
+    </html>
+  `;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundDark }]}>
       <View style={[styles.header, { backgroundColor: colors.backgroundCard }]}>
         <Text style={[typography.h2, { color: colors.textPrimary }]}>{t('nav_map') || 'Marine Map'}</Text>
       </View>
       <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          initialRegion={initialRegion}
-          provider={null}
-        >
-          <UrlTile 
-            urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
-            maximumZ={19} 
+        {loading && !forecast ? (
+          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <ActivityIndicator size="large" color={colors.accentBlue} />
+          </View>
+        ) : (
+          <WebView 
+            originWhitelist={['*']}
+            source={{ html: mapHtml }}
+            style={styles.map}
           />
-          <Marker coordinate={{ latitude: 19.13, longitude: 72.81 }} title="Versova" description="Fishing Zone">
-            <Callout>
-              <View style={styles.callout}>
-                {loading ? <ActivityIndicator size="small" /> : (
-                  forecast ? (
-                    <>
-                      <Text style={{ fontWeight: 'bold' }}>Marine Conditions</Text>
-                      <Text>Waves: {forecast.value ?? forecast.wave_height} {forecast.unit ?? 'm'}</Text>
-                    </>
-                  ) : (
-                    <Text>No data available</Text>
-                  )
-                )}
-              </View>
-            </Callout>
-          </Marker>
-        </MapView>
+        )}
       </View>
       
       {forecast && (
@@ -90,8 +104,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { padding: 16, zIndex: 1, elevation: 2 },
   mapContainer: { flex: 1 },
-  map: { width: '100%', height: '100%' },
-  callout: { padding: 8, width: 150 },
+  map: { flex: 1, width: '100%', height: '100%' },
   bottomSheet: {
     position: 'absolute',
     bottom: 20,
