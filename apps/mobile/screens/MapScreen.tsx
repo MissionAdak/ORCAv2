@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, Switch, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
+import { useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -12,6 +13,8 @@ export default function MapScreen() {
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
   const webviewRef = useRef<WebView>(null);
+  const route = useRoute<any>();
+  const focusAlert = route.params?.focusAlert;
 
   const [loading, setLoading] = useState(true);
   const [selectedFeature, setSelectedFeature] = useState<any>(null);
@@ -219,6 +222,29 @@ export default function MapScreen() {
   useEffect(() => { toggleLayer('imbl', showIMBL); }, [showIMBL]);
   useEffect(() => { toggleLayer('rescue', showRescue); }, [showRescue]);
   useEffect(() => { toggleLayer('route', showRoute); }, [showRoute]);
+
+  useEffect(() => {
+    if (focusAlert && !loading) {
+      const script = `
+        map.flyTo([${focusAlert.lat}, ${focusAlert.lng}], 14, { animate: true });
+        
+        var hazardIcon = L.divIcon({
+          className: 'custom-hazard-icon',
+          html: '<div style="background-color: red; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; border-radius: 4px; border: 2px solid white; color: white; font-weight: bold; font-family: sans-serif;">!</div>',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+
+        L.marker([${focusAlert.lat}, ${focusAlert.lng}], { icon: hazardIcon })
+          .addTo(map)
+          .bindPopup('<b>${focusAlert.type.replace(/'/g, "\\'")}</b><br/>${(focusAlert.description || '').replace(/'/g, "\\'")}')
+          .openPopup();
+          
+        true;
+      `;
+      webviewRef.current?.injectJavaScript(script);
+    }
+  }, [focusAlert, loading]);
 
   const handleMessage = (event: any) => {
     try {

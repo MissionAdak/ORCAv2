@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Image, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { MarineService } from '../services/marineService';
+import { useNavigation } from '@react-navigation/native';
 
 export default function AlertsScreen() {
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     const fetchAlerts = async () => {
@@ -49,19 +51,35 @@ export default function AlertsScreen() {
               {t('no_active_alerts') || 'No active alerts in your area.'}
             </Text>
           ) : (
-            alerts.map((alert: any, index: number) => (
-              <View key={index} style={[styles.alertCard, { backgroundColor: colors.backgroundCard }]}>
-                <Text style={[typography.h3, { color: alert.severity === 'High' ? colors.riskHigh : colors.riskModerate }]}>
-                  {alert.title || alert.type || 'Alert'}
-                </Text>
-                <Text style={[typography.bodyMedium, { color: colors.textPrimary, marginVertical: 4 }]}>
-                  {alert.description || alert.message}
-                </Text>
-                <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
-                  {t('alert_severity') || 'Severity:'} {alert.severity}
-                </Text>
-              </View>
-            ))
+            alerts.map((alert: any, index: number) => {
+              const lat = alert.lat || alert.latitude || 19.13;
+              const lng = alert.lon || alert.longitude || 72.81;
+              const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=12&size=400x200&markers=${lat},${lng}`;
+
+              return (
+                <Pressable
+                  key={index}
+                  onPress={() => navigation.navigate('Map', { focusAlert: { lat, lng, type: alert.title || alert.type, description: alert.description || alert.message } })}
+                  style={({ pressed }) => [
+                    styles.alertCard,
+                    { backgroundColor: colors.backgroundCard, opacity: pressed ? 0.8 : 1 }
+                  ]}
+                >
+                  <Text style={[typography.h3, { color: alert.severity === 'High' ? colors.riskHigh : colors.riskModerate, marginBottom: 8 }]}>
+                    {t(alert.title || alert.type) || alert.title || alert.type || 'Alert'}
+                  </Text>
+                  
+                  <Image source={{ uri: mapUrl }} style={styles.miniMap} />
+
+                  <Text style={[typography.bodyMedium, { color: colors.textPrimary, marginVertical: 8 }]}>
+                    {t(alert.description || alert.message) || alert.description || alert.message}
+                  </Text>
+                  <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
+                    {t('alert_severity') || 'Severity:'} {t(alert.severity) || alert.severity}
+                  </Text>
+                </Pressable>
+              );
+            })
           )}
         </ScrollView>
       )}
@@ -76,5 +94,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     marginBottom: 12,
+  },
+  miniMap: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: '#333'
   },
 });
