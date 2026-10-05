@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { MarineService } from '../services/marineService';
-import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 
 const getLocaleCode = (lang: string) => {
   const map: Record<string, string> = {
@@ -51,29 +51,23 @@ export default function AIScreen() {
     }
   }, [status]);
 
-  useEffect(() => {
-    Voice.onSpeechResults = (e: SpeechResultsEvent) => {
-      if (e.value && e.value.length > 0) {
-        setInputText(e.value[0]);
-      }
-    };
-    
-    Voice.onSpeechEnd = () => {
-      setStatus('idle');
-    };
-    
-    Voice.onSpeechError = (e: SpeechErrorEvent) => {
-      console.error('Speech recognition error:', e.error);
-      if (e.error?.message !== '7/No match') {
-        setError("Voice recognition error: " + e.error?.message);
-      }
-      setStatus('idle');
-    };
-    
-    return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
-    };
-  }, []);
+  useSpeechRecognitionEvent('result', (event) => {
+    if (event.results && event.results.length > 0) {
+      setInputText(event.results[0].transcript);
+    }
+  });
+
+  useSpeechRecognitionEvent('end', () => {
+    setStatus('idle');
+  });
+
+  useSpeechRecognitionEvent('error', (event) => {
+    console.error('Speech recognition error:', event.error);
+    if (event.error !== 'no-match') {
+      setError("Voice recognition error: " + event.message);
+    }
+    setStatus('idle');
+  });
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
@@ -98,20 +92,29 @@ export default function AIScreen() {
     try {
       setError(null);
       setInputText('');
-      await Voice.start(getLocaleCode(language));
+      const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Error", "Failed to start speech recognition. Please grant microphone permissions.");
+        return;
+      }
+      ExpoSpeechRecognitionModule.start({
+        lang: getLocaleCode(language),
+        interimResults: true,
+        continuous: false,
+      });
       setStatus('recording');
     } catch (err) {
       console.error('Failed to start recording:', err);
-      Alert.alert("Error", "Failed to start speech recognition. Please grant microphone permissions.");
+      Alert.alert("Error", "Failed to start speech recognition.");
       setStatus('idle');
     }
   };
 
-  const stopRecording = async () => {
+  const stopRecording = () => {
     if (status !== 'recording') return;
     
     try {
-      await Voice.stop();
+      ExpoSpeechRecognitionModule.stop();
       setStatus('idle');
       // If we have text transcribed, send it
       if (inputText.trim()) {
