@@ -5,19 +5,35 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { Card, Button } from '../components';
+import { Card, Button, Input } from '../components';
 
 export default function ProfileScreen() {
   const { colors, typography, spacing, isWetHandMode, toggleWetHandMode } = useTheme();
   const { t, language, setLanguage, supportedLanguages } = useLanguage();
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   
   const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editHarbor, setEditHarbor] = useState(user?.harbor || '');
+  const [editVesselName, setEditVesselName] = useState(user?.vesselName || '');
+  const [editVesselId, setEditVesselId] = useState(user?.vesselId || '');
+  const [editEmergencyContacts, setEditEmergencyContacts] = useState(user?.emergencyContacts?.join(', ') || '');
+
+  const handleSave = async () => {
+    await updateProfile({
+      name: editName,
+      harbor: editHarbor,
+      vesselName: editVesselName,
+      vesselId: editVesselId,
+      emergencyContacts: editEmergencyContacts.split(',').map(s => s.trim()).filter(Boolean),
+    });
+    setIsEditing(false);
+  };
 
   const handleLogout = async () => {
     Alert.alert(
-      "Sign Out",
-      "Are you sure you want to log out of ORCA?",
+      t('sign_out') || "Sign Out",
+      t('sign_out_confirm') || "Are you sure you want to log out of ORCA?",
       [
         { text: "Cancel", style: "cancel" },
         { 
@@ -43,8 +59,8 @@ export default function ProfileScreen() {
             {t('nav_profile')}
           </Text>
           <Button 
-            title={isEditing ? "Save" : "Edit"} 
-            onPress={() => setIsEditing(!isEditing)} 
+            title={isEditing ? t('profile_save') || "Save" : t('profile_edit') || "Edit"} 
+            onPress={() => isEditing ? handleSave() : setIsEditing(true)} 
             variant="outline" 
             style={styles.editBtn} 
           />
@@ -59,11 +75,23 @@ export default function ProfileScreen() {
               </Text>
             </View>
             <View style={styles.profileInfo}>
-              <Text style={[typography.h3, { color: colors.textPrimary }]}>
-                {user?.name || 'Guest Fisher / Offline Demo Mode'}
-              </Text>
-              <Text style={[typography.bodyMedium, { color: colors.textMuted }]}>
-                {user?.phone || 'No phone number linked'}
+              {isEditing ? (
+                <>
+                  <Input value={editName} onChangeText={setEditName} placeholder={t('profile_name') || "Name"} />
+                  <Input value={editHarbor} onChangeText={setEditHarbor} placeholder={t('profile_location') || "Location (e.g. Versova)"} style={{ marginTop: 8 }} />
+                </>
+              ) : (
+                <>
+                  <Text style={[typography.h3, { color: colors.textPrimary }]}>
+                    {user?.name || t('guest_fisher') || 'Guest Fisher / Offline Demo Mode'}
+                  </Text>
+                  <Text style={[typography.bodyMedium, { color: colors.accentBlue, marginTop: 4 }]}>
+                    <Ionicons name="location-outline" size={14} /> {user?.harbor || t('location_not_set') || 'Location not set'}
+                  </Text>
+                </>
+              )}
+              <Text style={[typography.bodyMedium, { color: colors.textMuted, marginTop: 4 }]}>
+                {user?.phone || t('no_phone') || 'No phone number linked'}
               </Text>
               {user?.email && (
                 <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
@@ -75,31 +103,43 @@ export default function ProfileScreen() {
         </Card>
 
         {/* Vessel & Emergency Details */}
-        <Card title="Vessel & Emergency" icon={<Ionicons name="boat-outline" size={20} color={colors.accentTeal} />}>
+        <Card title={t('vessel_emergency') || "Vessel & Emergency"} icon={<Ionicons name="boat-outline" size={20} color={colors.accentTeal} />}>
           <View style={styles.detailRow}>
-            <Text style={[typography.bodyMedium, { color: colors.textMuted, width: 120 }]}>Vessel Name:</Text>
-            <Text style={[typography.bodyMedium, { color: colors.textPrimary, flex: 1 }]}>{user?.vesselName || 'N/A'}</Text>
+            <Text style={[typography.bodyMedium, { color: colors.textMuted, width: 120 }]}>{t('vessel_name') || "Vessel Name:"}</Text>
+            {isEditing ? (
+              <Input value={editVesselName} onChangeText={setEditVesselName} style={{ flex: 1 }} />
+            ) : (
+              <Text style={[typography.bodyMedium, { color: colors.textPrimary, flex: 1 }]}>{user?.vesselName || t('vessel_na') || 'N/A'}</Text>
+            )}
           </View>
           <View style={styles.detailRow}>
-            <Text style={[typography.bodyMedium, { color: colors.textMuted, width: 120 }]}>Registration ID:</Text>
-            <Text style={[typography.bodyMedium, { color: colors.textPrimary, flex: 1 }]}>{user?.vesselId || 'N/A'}</Text>
+            <Text style={[typography.bodyMedium, { color: colors.textMuted, width: 120 }]}>{t('registration_id') || "Registration ID:"}</Text>
+            {isEditing ? (
+              <Input value={editVesselId} onChangeText={setEditVesselId} style={{ flex: 1 }} />
+            ) : (
+              <Text style={[typography.bodyMedium, { color: colors.textPrimary, flex: 1 }]}>{user?.vesselId || t('vessel_na') || 'N/A'}</Text>
+            )}
           </View>
           <View style={styles.detailRow}>
-            <Text style={[typography.bodyMedium, { color: colors.textMuted, width: 120 }]}>Emergency:</Text>
-            <Text style={[typography.bodyMedium, { color: colors.textPrimary, flex: 1 }]}>
-              {user?.emergencyContacts?.join(', ') || 'None set'}
-            </Text>
+            <Text style={[typography.bodyMedium, { color: colors.textMuted, width: 120 }]}>{t('emergency_contact') || "Emergency:"}</Text>
+            {isEditing ? (
+              <Input value={editEmergencyContacts} onChangeText={setEditEmergencyContacts} style={{ flex: 1 }} placeholder={t('comma_separated') || "Comma separated"} />
+            ) : (
+              <Text style={[typography.bodyMedium, { color: colors.textPrimary, flex: 1 }]}>
+                {user?.emergencyContacts?.join(', ') || t('none_set') || 'None set'}
+              </Text>
+            )}
           </View>
         </Card>
 
         {/* Settings */}
         <Text style={[typography.h3, { color: colors.textPrimary, marginTop: spacing.md, marginBottom: spacing.sm }]}>
-          Settings
+          {t('settings') || 'Settings'}
         </Text>
 
         <Card title="Language / भाषा" icon={<Ionicons name="language-outline" size={20} color={colors.accentBlue} />}>
           <Text style={[typography.bodySmall, { color: colors.textMuted, marginBottom: 12 }]}>
-            Active Language: {activeLanguageName}
+            {t('active_language') || 'Active Language:'} {activeLanguageName}
           </Text>
           <View style={styles.langGrid}>
             {supportedLanguages.map((item) => (
@@ -114,9 +154,9 @@ export default function ProfileScreen() {
           </View>
         </Card>
 
-        <Card title={t('wet_hand_mode')} subtitle="Enlarges tap targets and forces high-contrast" icon={<Ionicons name="hand-right-outline" size={20} color={colors.accentGold} />}>
+        <Card title={t('wet_hand_mode')} subtitle={t('wet_hand_desc') || "Enlarges tap targets and forces high-contrast"} icon={<Ionicons name="hand-right-outline" size={20} color={colors.accentGold} />}>
           <Button
-            title={isWetHandMode ? 'Enabled (64dp Target Active)' : 'Disabled (Standard 48dp)'}
+            title={isWetHandMode ? (t('enabled_64dp') || 'Enabled (64dp Target Active)') : (t('disabled_48dp') || 'Disabled (Standard 48dp)')}
             onPress={toggleWetHandMode}
             variant={isWetHandMode ? 'primary' : 'outline'}
           />
@@ -124,7 +164,7 @@ export default function ProfileScreen() {
 
         {/* Logout Action */}
         <Button 
-          title="Sign Out" 
+          title={t('sign_out') || "Sign Out"} 
           onPress={handleLogout} 
           variant="secondary" 
           style={{ marginTop: spacing.lg, borderColor: 'red', borderWidth: 1 }} 

@@ -8,7 +8,7 @@ load_dotenv()
 
 from fastapi import APIRouter, Form, File, UploadFile
 from pydantic import BaseModel
-import google.generativeai as genai
+import google.generativeai as genai # type: ignore
 
 from agents.evidence_engine import EvidenceEngine
 
@@ -40,7 +40,7 @@ def chat_endpoint(
         model = genai.GenerativeModel("gemini-3.8-flash")
 
         system_prompt = f"""
-        You are ORCA, an advanced Agentic AI-powered Marine Intelligence Platform.
+        You are the ORCA Marine Intelligence Assistant backed by IMD.
         The user is currently near {location}.
         Their preferred language is {language}. You MUST respond natively in {language}.
         
@@ -68,6 +68,8 @@ def chat_endpoint(
             mime = audio.content_type
             if not mime or mime == "application/octet-stream":
                 mime = "audio/mp3" 
+            elif mime in ["audio/m4a", "audio/x-m4a"]:
+                mime = "audio/mp4"
                 
             contents.append({
                 "mime_type": mime,
@@ -81,7 +83,7 @@ def chat_endpoint(
             return ChatResponse(status="CLARIFICATION", text_response="Please provide text or audio input.")
 
         # --- Execute One-Shot Gemini Generation ---
-        import google.api_core.exceptions
+        import google.api_core.exceptions # type: ignore
         import time
         try:
             response = model.generate_content(contents)
@@ -98,10 +100,10 @@ def chat_endpoint(
         # --- Wrap with ORCA Standard Data Model Evidence ---
         aggregated = evidence.synthesize_recommendation({
             "metrics": {
-                "sst_trend": "detected by Gemini Flash",
+                "sst_trend": "detected by ORCA Agent",
                 "chlorophyll_trend": "derived from context"
             },
-            "source": "Gemini 3.8 Flash Audio/Text Pipeline",
+            "source": "ORCA Marine Intelligence Pipeline",
             "confidence": 0.95
         })
 
@@ -124,4 +126,4 @@ def chat_endpoint(
 
     except Exception as e:
         traceback.print_exc()
-        return ChatResponse(status="ERROR", error=f"Gemini API failed: {str(e)}")
+        return ChatResponse(status="ERROR", error=f"ORCA API failed: {str(e)}")

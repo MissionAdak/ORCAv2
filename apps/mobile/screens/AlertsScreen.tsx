@@ -46,7 +46,7 @@ export default function AlertsScreen() {
         <ScrollView style={styles.list}>
           {(!alerts || alerts.length === 0) ? (
             <Text style={[typography.bodyMedium, { color: colors.textMuted, textAlign: 'center', marginTop: 20 }]}>
-              No active alerts in your area.
+              {t('no_active_alerts') || 'No active alerts in your area.'}
             </Text>
           ) : (
             alerts.map((alert: any, index: number) => (
@@ -58,7 +58,7 @@ export default function AlertsScreen() {
                   {alert.description || alert.message}
                 </Text>
                 <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
-                  Severity: {alert.severity}
+                  {t('alert_severity') || 'Severity:'} {alert.severity}
                 </Text>
               </View>
             ))

@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabParamList } from './types';
 import HomeScreen from '../screens/HomeScreen';
 import MapScreen from '../screens/MapScreen';
@@ -16,6 +17,7 @@ const Tab = createBottomTabNavigator<BottomTabParamList>();
 export default function BottomTabNavigator() {
   const { colors, isWetHandMode, triggerHaptic } = useTheme();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -26,8 +28,8 @@ export default function BottomTabNavigator() {
           {
             backgroundColor: colors.backgroundNavy,
             borderTopColor: colors.surfaceBorder,
-            height: isWetHandMode ? 76 : 64,
-            paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+            height: (isWetHandMode ? 76 : 64) + (insets.bottom > 0 ? insets.bottom - 10 : 0),
+            paddingBottom: insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 20 : 10),
             paddingTop: 8,
           },
         ],

@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { MarineService } from '../services/marineService';
-import { useAudioRecorder, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
+import { useAudioRecorder, RecordingPresets, requestRecordingPermissionsAsync } from 'expo-audio';
 
 export default function AIScreen() {
   const { colors, typography } = useTheme();
@@ -50,7 +50,7 @@ export default function AIScreen() {
       setInputText('');
     } catch (err) {
       console.error("AI request failed:", err);
-      setError("Failed to connect to AI Service. Falling back to offline cache...");
+      setError(t('ai_error_fallback') || "Failed to connect to AI Service. Falling back to offline cache...");
     } finally {
       setStatus('idle');
     }
@@ -60,15 +60,12 @@ export default function AIScreen() {
     try {
       const permission = await requestRecordingPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Permission Denied", "Microphone access is required to use Voice AI.");
+        Alert.alert(t('permission_denied') || "Permission Denied", t('mic_access_required') || "Microphone access is required to use Voice AI.");
         return;
       }
       
-      // Ensure the audio mode is configured properly for recording
-      await setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-      });
+      console.log("Preparing audio recorder...");
+      await recorder.prepareToRecordAsync();
 
       console.log("Audio recording started...");
       recorder.record();
@@ -86,11 +83,6 @@ export default function AIScreen() {
     try {
       console.log("Audio recording stopped...");
       await recorder.stop();
-      
-      // Revert audio mode after recording is finished
-      await setAudioModeAsync({
-        allowsRecording: false,
-      });
       
       const uri = recorder.uri;
       if (uri) {
@@ -140,13 +132,10 @@ export default function AIScreen() {
           </Text>
         )}
         
-        {responsePayload && (
+        {responsePayload && responsePayload.text_response && (
           <View style={[styles.responseBox, { backgroundColor: colors.backgroundCard }]}>
-            <Text style={[typography.bodyMedium, { color: colors.textPrimary, marginBottom: 8 }]}>
-              AI Response Payload:
-            </Text>
-            <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
-              {JSON.stringify(responsePayload, null, 2)}
+            <Text style={[typography.bodyMedium, { color: colors.textPrimary }]}>
+              {responsePayload.text_response}
             </Text>
           </View>
         )}
@@ -157,7 +146,7 @@ export default function AIScreen() {
           <Input 
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Type your query here..."
+            placeholder={t('type_query') || "Type your query here..."}
             editable={status === 'idle'}
           />
         </View>
@@ -169,17 +158,17 @@ export default function AIScreen() {
             {status === 'recording' ? (
               <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                 <Button 
-                  title="Stop" 
+                  title={t('stop') || "Stop"} 
                   onPress={stopRecording} 
                   variant="secondary" 
                   style={{ backgroundColor: 'red', borderColor: 'red' }}
                 />
               </Animated.View>
             ) : (
-              <Button title="Mic" onPress={startRecording} variant="secondary" />
+              <Button title={t('mic') || "Mic"} onPress={startRecording} variant="secondary" />
             )}
             <View style={{ width: 8 }} />
-            <Button title="Send" onPress={handleSend} variant="primary" disabled={status !== 'idle'} />
+            <Button title={t('send') || "Send"} onPress={handleSend} variant="primary" disabled={status !== 'idle'} />
           </View>
         )}
       </View>

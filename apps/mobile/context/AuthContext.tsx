@@ -23,6 +23,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   loginAsDemo: (persona: 'ramesh' | 'suresh') => Promise<void>;
   resetPassword: (identifier: string) => Promise<{ success: boolean; message: string }>;
+  updateProfile: (updates: Partial<AuthUser>) => Promise<void>;
 }
 
 const STORAGE_KEY_AUTH = '@orca_auth_user';
@@ -168,6 +169,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (updates: Partial<AuthUser>) => {
+    if (!user) return;
+    const updatedUser = { ...user, ...updates };
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    } catch (err) {
+      console.warn('Failed to update auth session:', err);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -179,6 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         loginAsDemo,
         resetPassword,
+        updateProfile,
       }}
     >
       {children}

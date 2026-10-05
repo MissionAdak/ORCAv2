@@ -23,11 +23,13 @@ export default function MapScreen() {
   const [showRescue, setShowRescue] = useState(true);
   const [showRoute, setShowRoute] = useState(true);
 
-  // Sea State Metrics
   const seaState = {
-    windSpeed: '12 knots (NW)',
-    waveLength: '45 meters',
-    waveSpeed: '2.5 m/s'
+    windSpeed: `12 ${t('knots')}`,
+    windDirection: t('nw'),
+    waveLength: `45 ${t('meters')}`,
+    waveSpeed: `2.5 ${t('mps')}`,
+    temperature: '28°C',
+    tide: `${t('high_tide')} (14:30)`
   };
 
   const initialRegion = {
@@ -91,7 +93,7 @@ export default function MapScreen() {
             type: "FeatureCollection",
             features: [{
                 type: "Feature",
-                properties: { name: "High Probability Potential Fishing Zone", type: "Potential Fishing Zone", confidence: "92%", source: "INCOIS" },
+                properties: { name: "${t('high_probability_pfz')}", type: "${t('pfz_type')}", confidence: "92%", source: "INCOIS" },
                 geometry: { type: "Polygon", coordinates: [[[72.75, 19.10], [72.70, 19.15], [72.78, 19.18], [72.80, 19.12], [72.75, 19.10]]] }
             }]
         };
@@ -100,7 +102,7 @@ export default function MapScreen() {
             type: "FeatureCollection",
             features: [{
                 type: "Feature",
-                properties: { name: "International Maritime Boundary Line Buffer", type: "Boundary Warning", warning: "Approaching International Waters" },
+                properties: { name: "${t('imbl_buffer')}", type: "${t('boundary_warning')}", warning: "${t('approaching_imbl')}" },
                 geometry: { type: "LineString", coordinates: [[72.4, 18.9], [72.3, 19.2], [72.2, 19.5]] }
             }]
         };
@@ -109,7 +111,7 @@ export default function MapScreen() {
             type: "FeatureCollection",
             features: [{
                 type: "Feature",
-                properties: { name: "Cyclone Warning", type: "hazard", severity: "High", source: "IMD" },
+                properties: { name: "${t('cyclone_warning')}", type: "${t('hazard')}", severity: "High", source: "IMD" },
                 geometry: { type: "Polygon", coordinates: [[[72.5, 18.9], [72.6, 18.9], [72.6, 19.0], [72.5, 19.0], [72.5, 18.9]]] }
             }]
         };
@@ -118,7 +120,7 @@ export default function MapScreen() {
             type: "FeatureCollection",
             features: [{
                 type: "Feature",
-                properties: { name: "Coast Guard Station", type: "rescue", contact: "VHF 16" },
+                properties: { name: "${t('coast_guard_station')}", type: "${t('rescue_type')}", contact: "VHF 16" },
                 geometry: { type: "Point", coordinates: [72.82, 19.15] }
             }]
         };
@@ -127,7 +129,7 @@ export default function MapScreen() {
             type: "FeatureCollection",
             features: [{
                 type: "Feature",
-                properties: { name: "Safe Navigation Route", type: "route", details: "Computed route avoiding high wave crests" },
+                properties: { name: "${t('safe_navigation_route')}", type: "${t('route_type')}", details: "${t('computed_route')}" },
                 geometry: { type: "LineString", coordinates: [[72.81, 19.13], [72.78, 19.13], [72.75, 19.15]] }
             }]
         };
@@ -255,28 +257,31 @@ export default function MapScreen() {
         />
       </View>
 
-      {/* Sea State Metrics Overlay (Top Left) */}
+      {/* Sea State Metrics Overlay (Bottom Left) */}
       <View style={styles.metricsContainer}>
-        <Text style={styles.metricsTitle}>Current Sea State</Text>
-        <Text style={styles.metricsText}>Wind Speed: {seaState.windSpeed}</Text>
-        <Text style={styles.metricsText}>Wave Length: {seaState.waveLength}</Text>
-        <Text style={styles.metricsText}>Wave Speed: {seaState.waveSpeed}</Text>
+        <Text style={styles.metricsTitle}>{t('current_sea_state')}</Text>
+        <Text style={styles.metricsText}>{t('wind_speed')} {seaState.windSpeed}</Text>
+        <Text style={styles.metricsText}>{t('wind_dir')} {seaState.windDirection}</Text>
+        <Text style={styles.metricsText}>{t('wave_length')} {seaState.waveLength}</Text>
+        <Text style={styles.metricsText}>{t('wave_speed')} {seaState.waveSpeed}</Text>
+        <Text style={styles.metricsText}>{t('temperature')} {seaState.temperature}</Text>
+        <Text style={styles.metricsText}>{t('tide')} {seaState.tide}</Text>
       </View>
 
       {/* Layer Toggles Overlay (Top Right) */}
       <View style={styles.togglesContainer}>
-        <View style={styles.toggleRow}><Switch value={showPFZ} onValueChange={setShowPFZ}/><Text style={styles.toggleText}>Potential Fishing Zone</Text></View>
-        <View style={styles.toggleRow}><Switch value={showHazards} onValueChange={setShowHazards}/><Text style={styles.toggleText}>Alerts</Text></View>
-        <View style={styles.toggleRow}><Switch value={showIMBL} onValueChange={setShowIMBL}/><Text style={styles.toggleText}>International Maritime Boundary Line</Text></View>
-        <View style={styles.toggleRow}><Switch value={showRescue} onValueChange={setShowRescue}/><Text style={styles.toggleText}>Rescue</Text></View>
-        <View style={styles.toggleRow}><Switch value={showRoute} onValueChange={setShowRoute}/><Text style={styles.toggleText}>Safe Route</Text></View>
+        <View style={styles.toggleRow}><Switch value={showPFZ} onValueChange={setShowPFZ}/><Text style={styles.toggleText}>{t('pfz')}</Text></View>
+        <View style={styles.toggleRow}><Switch value={showHazards} onValueChange={setShowHazards}/><Text style={styles.toggleText}>{t('alerts')}</Text></View>
+        <View style={styles.toggleRow}><Switch value={showIMBL} onValueChange={setShowIMBL}/><Text style={styles.toggleText}>{t('imbl')}</Text></View>
+        <View style={styles.toggleRow}><Switch value={showRescue} onValueChange={setShowRescue}/><Text style={styles.toggleText}>{t('rescue')}</Text></View>
+        <View style={styles.toggleRow}><Switch value={showRoute} onValueChange={setShowRoute}/><Text style={styles.toggleText}>{t('safe_route')}</Text></View>
       </View>
       
       {/* Tap-to-Inspect Bottom Sheet */}
       {selectedFeature && (
         <View style={[styles.bottomSheet, { backgroundColor: colors.backgroundCard }]}>
           <Text style={[typography.h3, { color: colors.textPrimary, marginBottom: 8 }]}>
-            {selectedFeature.name || 'Zone Details'}
+            {selectedFeature.name || t('zone_details')}
           </Text>
           
           <View style={styles.chipRow}>
@@ -285,13 +290,13 @@ export default function MapScreen() {
           </View>
           
           {selectedFeature.details && <Text style={[typography.bodyMedium, { color: colors.accentBlue, marginBottom: 4 }]}>{selectedFeature.details}</Text>}
-          {selectedFeature.confidence && <Text style={[typography.bodyMedium, { color: colors.textMuted }]}>Confidence: {selectedFeature.confidence}</Text>}
-          {selectedFeature.severity && <Text style={[typography.bodyMedium, { color: 'red' }]}>Severity: {selectedFeature.severity}</Text>}
+          {selectedFeature.confidence && <Text style={[typography.bodyMedium, { color: colors.textMuted }]}>{t('confidence')} {selectedFeature.confidence}</Text>}
+          {selectedFeature.severity && <Text style={[typography.bodyMedium, { color: 'red' }]}>{t('severity')} {selectedFeature.severity}</Text>}
           {selectedFeature.warning && <Text style={[typography.bodyMedium, { color: 'orange' }]}>{selectedFeature.warning}</Text>}
-          {selectedFeature.contact && <Text style={[typography.bodyMedium, { color: colors.textMuted }]}>Contact: {selectedFeature.contact}</Text>}
+          {selectedFeature.contact && <Text style={[typography.bodyMedium, { color: colors.textMuted }]}>{t('contact')} {selectedFeature.contact}</Text>}
 
           <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedFeature(null)}>
-            <Text style={{color: 'white', fontWeight: 'bold'}}>CLOSE</Text>
+            <Text style={{color: 'white', fontWeight: 'bold'}}>{t('close')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -308,13 +313,14 @@ const styles = StyleSheet.create({
   
   metricsContainer: {
     position: 'absolute',
-    top: 80,
+    bottom: 20,
     left: 16,
     backgroundColor: 'rgba(20, 20, 20, 0.85)',
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#333'
+    borderColor: '#333',
+    zIndex: 10
   },
   metricsTitle: { color: '#00E5FF', fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
   metricsText: { color: 'white', fontSize: 12, marginBottom: 2 },
