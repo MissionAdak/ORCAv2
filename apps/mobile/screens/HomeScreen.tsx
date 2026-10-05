@@ -46,13 +46,15 @@ export default function HomeScreen({ navigation }: BottomTabScreenProps<'Home'>)
         {/* Marine Risk Banner */}
         <Card elevated style={{ borderColor: colors.riskModerate }}>
           <View style={styles.riskRow}>
-            <View>
+            <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={[typography.label, { color: colors.textSecondary }]}>Current Marine Risk</Text>
-              <Text style={[typography.h1, { color: colors.riskModerate, marginTop: 2 }]}>
+              <Text style={[typography.h1, { color: colors.riskModerate, marginTop: 2 }]} adjustsFontSizeToFit numberOfLines={1}>
                 {t('risk_moderate')}
               </Text>
             </View>
-            <Badge label="MODERATE" level="MODERATE" size="large" />
+            <View style={{ flexShrink: 0 }}>
+              <Badge label="MODERATE" level="MODERATE" size="large" />
+            </View>
           </View>
           <Text style={[typography.bodyMedium, { color: colors.textSecondary, marginTop: 8 }]}>
             Wave height and gusting wind elevated offshore. Suitable for motorized vessels with caution.

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, Switch, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
@@ -12,6 +12,7 @@ const API_BASE = "https://orca-backend-tkus.onrender.com";
 export default function MapScreen() {
   const { colors, typography } = useTheme();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const webviewRef = useRef<WebView>(null);
   const route = useRoute<any>();
   const focusAlert = route.params?.focusAlert;
@@ -295,12 +296,12 @@ export default function MapScreen() {
       </View>
 
       {/* Layer Toggles Overlay (Top Right) */}
-      <View style={styles.togglesContainer}>
-        <View style={styles.toggleRow}><Switch value={showPFZ} onValueChange={setShowPFZ}/><Text style={styles.toggleText}>{t('pfz')}</Text></View>
-        <View style={styles.toggleRow}><Switch value={showHazards} onValueChange={setShowHazards}/><Text style={styles.toggleText}>{t('alerts')}</Text></View>
-        <View style={styles.toggleRow}><Switch value={showIMBL} onValueChange={setShowIMBL}/><Text style={styles.toggleText}>{t('imbl')}</Text></View>
-        <View style={styles.toggleRow}><Switch value={showRescue} onValueChange={setShowRescue}/><Text style={styles.toggleText}>{t('rescue')}</Text></View>
-        <View style={styles.toggleRow}><Switch value={showRoute} onValueChange={setShowRoute}/><Text style={styles.toggleText}>{t('safe_route')}</Text></View>
+      <View style={[styles.togglesContainer, { top: insets.top + 60 }]}>
+        <View style={styles.toggleRow}><Switch style={styles.compactSwitch} value={showPFZ} onValueChange={setShowPFZ}/><Text style={styles.toggleText}>{t('pfz')}</Text></View>
+        <View style={styles.toggleRow}><Switch style={styles.compactSwitch} value={showHazards} onValueChange={setShowHazards}/><Text style={styles.toggleText}>{t('alerts')}</Text></View>
+        <View style={styles.toggleRow}><Switch style={styles.compactSwitch} value={showIMBL} onValueChange={setShowIMBL}/><Text style={styles.toggleText}>{t('imbl')}</Text></View>
+        <View style={styles.toggleRow}><Switch style={styles.compactSwitch} value={showRescue} onValueChange={setShowRescue}/><Text style={styles.toggleText}>{t('rescue')}</Text></View>
+        <View style={styles.toggleRow}><Switch style={styles.compactSwitch} value={showRoute} onValueChange={setShowRoute}/><Text style={styles.toggleText}>{t('safe_route')}</Text></View>
       </View>
       
       {/* Tap-to-Inspect Bottom Sheet */}
@@ -353,16 +354,16 @@ const styles = StyleSheet.create({
 
   togglesContainer: {
     position: 'absolute',
-    top: 80,
     right: 16,
     backgroundColor: 'rgba(30, 30, 30, 0.85)',
-    padding: 10,
+    padding: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#333'
   },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  toggleText: { color: 'white', marginLeft: 8, fontSize: 12, fontWeight: 'bold', maxWidth: 120 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  toggleText: { color: 'white', marginLeft: 4, fontSize: 10, fontWeight: 'bold', maxWidth: 100 },
+  compactSwitch: { transform: [{ scale: 0.7 }] },
 
   bottomSheet: {
     position: 'absolute',

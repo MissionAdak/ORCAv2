@@ -15,7 +15,7 @@ const AlertCard = ({ alert, index, colors, typography, t, navigation }: any) => 
 
   const lat = alert.lat || alert.latitude || 19.13;
   const lng = alert.lon || alert.longitude || 72.81;
-  const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=12&size=400x200&markers=${lat},${lng}`;
+  const mapUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Map_placeholder.png/800px-Map_placeholder.png';
 
   const handleVerify = () => {
     if (!hasVoted) {
@@ -49,7 +49,7 @@ const AlertCard = ({ alert, index, colors, typography, t, navigation }: any) => 
         {getTypeDisplay(alert.title || alert.type, alert.severity)}
       </Text>
       
-      <Image source={{ uri: mapUrl }} style={styles.miniMap} />
+      <Image source={{ uri: mapUrl }} style={[styles.miniMap, { width: '100%', height: 150 }]} resizeMode="cover" />
 
       <Text style={[typography.bodyMedium, { color: colors.textPrimary, marginVertical: 8, fontSize: 15 }]}>
         {t(alert.description || alert.message) || alert.description || alert.message}
