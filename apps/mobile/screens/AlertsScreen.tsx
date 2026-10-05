@@ -1,10 +1,79 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Image, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Image, Pressable, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { MarineService } from '../services/marineService';
 import { useNavigation } from '@react-navigation/native';
+
+const AlertCard = ({ alert, index, colors, typography, t, navigation }: any) => {
+  const [visible, setVisible] = useState(true);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [upvotes, setUpvotes] = useState(() => Math.floor(Math.random() * 16) + 5);
+
+  if (!visible) return null;
+
+  const lat = alert.lat || alert.latitude || 19.13;
+  const lng = alert.lon || alert.longitude || 72.81;
+  const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=12&size=400x200&markers=${lat},${lng}`;
+
+  const handleVerify = () => {
+    if (!hasVoted) {
+      setUpvotes(prev => prev + 1);
+      setHasVoted(true);
+    }
+  };
+
+  const handleSpam = () => {
+    setVisible(false);
+  };
+
+  return (
+    <Pressable
+      key={index}
+      onPress={() => navigation.navigate('Map', { focusAlert: { lat, lng, type: alert.title || alert.type, description: alert.description || alert.message } })}
+      style={({ pressed }) => [
+        styles.alertCard,
+        { backgroundColor: colors.backgroundCard, opacity: pressed ? 0.8 : 1 }
+      ]}
+    >
+      <Text style={[typography.h3, { color: alert.severity === 'High' ? colors.riskHigh : colors.riskModerate, marginBottom: 8 }]}>
+        {t(alert.title || alert.type) || alert.title || alert.type || 'Alert'}
+      </Text>
+      
+      <Image source={{ uri: mapUrl }} style={styles.miniMap} />
+
+      <Text style={[typography.bodyMedium, { color: colors.textPrimary, marginVertical: 8 }]}>
+        {t(alert.description || alert.message) || alert.description || alert.message}
+      </Text>
+      <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
+        {t('alert_severity') || 'Severity:'} {t(alert.severity) || alert.severity}
+      </Text>
+
+      <View style={styles.actionFooter}>
+        <Text style={[typography.bodySmall, { color: colors.textMuted, flex: 1 }]}>
+          {upvotes} {t('fishers_verified') || 'Fishers Verified'}
+        </Text>
+        
+        <TouchableOpacity 
+          onPress={handleVerify} 
+          disabled={hasVoted}
+          style={[styles.actionButton, { backgroundColor: hasVoted ? '#555' : '#4CAF50' }]}
+        >
+          <Text style={styles.actionButtonText}>{hasVoted ? (t('verified') || 'Verified') : (t('verify') || '✓ Verify')}</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          onPress={handleSpam} 
+          style={[styles.actionButton, { backgroundColor: '#F44336', marginLeft: 8 }]}
+        >
+          <Text style={styles.actionButtonText}>{t('spam') || '✕ Spam'}</Text>
+        </TouchableOpacity>
+      </View>
+    </Pressable>
+  );
+};
+
 
 export default function AlertsScreen() {
   const { colors, typography } = useTheme();
@@ -51,35 +120,17 @@ export default function AlertsScreen() {
               {t('no_active_alerts') || 'No active alerts in your area.'}
             </Text>
           ) : (
-            alerts.map((alert: any, index: number) => {
-              const lat = alert.lat || alert.latitude || 19.13;
-              const lng = alert.lon || alert.longitude || 72.81;
-              const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=12&size=400x200&markers=${lat},${lng}`;
-
-              return (
-                <Pressable
-                  key={index}
-                  onPress={() => navigation.navigate('Map', { focusAlert: { lat, lng, type: alert.title || alert.type, description: alert.description || alert.message } })}
-                  style={({ pressed }) => [
-                    styles.alertCard,
-                    { backgroundColor: colors.backgroundCard, opacity: pressed ? 0.8 : 1 }
-                  ]}
-                >
-                  <Text style={[typography.h3, { color: alert.severity === 'High' ? colors.riskHigh : colors.riskModerate, marginBottom: 8 }]}>
-                    {t(alert.title || alert.type) || alert.title || alert.type || 'Alert'}
-                  </Text>
-                  
-                  <Image source={{ uri: mapUrl }} style={styles.miniMap} />
-
-                  <Text style={[typography.bodyMedium, { color: colors.textPrimary, marginVertical: 8 }]}>
-                    {t(alert.description || alert.message) || alert.description || alert.message}
-                  </Text>
-                  <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
-                    {t('alert_severity') || 'Severity:'} {t(alert.severity) || alert.severity}
-                  </Text>
-                </Pressable>
-              );
-            })
+            alerts.map((alert: any, index: number) => (
+              <AlertCard 
+                key={index} 
+                alert={alert} 
+                index={index} 
+                colors={colors} 
+                typography={typography} 
+                t={t} 
+                navigation={navigation} 
+              />
+            ))
           )}
         </ScrollView>
       )}
@@ -101,4 +152,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#333'
   },
+  actionFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+    paddingTop: 12,
+  },
+  actionButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  }
 });
