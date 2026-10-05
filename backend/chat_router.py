@@ -59,6 +59,7 @@ def chat_endpoint(
         Provide concise, actionable marine insights. Use the exact terminology: 'Potential Fishing Zone' and 'International Maritime Boundary Line'.
         
         CRITICAL FORMATTING INSTRUCTION: Do NOT use any LaTeX, MathJax, or markdown math delimiters (such as $ or $$) for coordinates, temperatures, or any numbers. Write plain text and use standard unicode symbols instead (e.g. write "19° 09' N" instead of "$19^\circ 09' \text{N}$", and "28.7°C" instead of "$28.7^\circ \text{C}$").
+        ALSO CRITICAL: Do NOT use ANY Markdown formatting. Do not use asterisks (* or **) for bold/italics. Do not use hash symbols (#) for headers. Output ONLY pure, unformatted plain text paragraphs. 
         """
 
         contents = [system_prompt]
