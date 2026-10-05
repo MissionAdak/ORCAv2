@@ -109,6 +109,10 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     enabled_64dp: 'सक्षम (64dp)',
     disabled_48dp: 'अक्षम (प्रमाणित 48dp)',
     'High waves and strong winds expected in the selected zone.': 'निवडलेल्या क्षेत्रात उंच लाटा आणि सोसाट्याच्या वाऱ्याची शक्यता आहे.',
+    'fishers_verified': 'मच्छीमारांनी पडताळणी केली',
+    'verify': '✓ पडताळा',
+    'verified': 'पडताळले',
+    'spam': '✕ स्पॅम',
   },
   hi: {
     knots: 'नॉट',
@@ -196,6 +200,10 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     enabled_64dp: 'सक्षम (64dp)',
     disabled_48dp: 'अक्षम (मानक 48dp)',
     'High waves and strong winds expected in the selected zone.': 'चयनित क्षेत्र में ऊंची लहरों और तेज हवाओं की उम्मीद है।',
+    'fishers_verified': 'मछुआरों द्वारा सत्यापित',
+    'verify': '✓ सत्यापित करें',
+    'verified': 'सत्यापित',
+    'spam': '✕ स्पैम',
   },
   en: {
     knots: 'knots',
@@ -283,6 +291,10 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     enabled_64dp: 'Enabled (64dp Target Active)',
     disabled_48dp: 'Disabled (Standard 48dp)',
     'High waves and strong winds expected in the selected zone.': 'High waves and strong winds expected in the selected zone.',
+    'fishers_verified': 'Fishers Verified',
+    'verify': '✓ Verify',
+    'verified': 'Verified',
+    'spam': '✕ Spam',
   },
   gu: {
     type_query: 'તમારો પ્રશ્ન અહીં ટાઇપ કરો...',
@@ -353,6 +365,10 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     enabled_64dp: 'સક્ષમ (64dp)',
     disabled_48dp: 'અક્ષમ (પ્રમાણભૂત 48dp)',
     'High waves and strong winds expected in the selected zone.': 'પસંદ કરેલ વિસ્તારમાં ઊંચા મોજા અને ભારે પવનની શક્યતા છે.',
+    'fishers_verified': 'માછીમારો દ્વારા ચકાસાયેલ',
+    'verify': '✓ ચકાસો',
+    'verified': 'ચકાસાયેલ',
+    'spam': '✕ સ્પામ',
   },
   ta: {
     type_query: 'உங்கள் கேள்வியை இங்கே தட்டச்சு செய்க...',
@@ -423,6 +439,10 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     enabled_64dp: 'இயக்கப்பட்டது (64dp)',
     disabled_48dp: 'முடக்கப்பட்டது (நிலையான 48dp)',
     'High waves and strong winds expected in the selected zone.': 'தேர்ந்தெடுக்கப்பட்ட மண்டலத்தில் உயர்ந்த அலைகள் மற்றும் பலத்த காற்று வீசும் என எதிர்பார்க்கப்படுகிறது.',
+    'fishers_verified': 'மீனவர்கள் சரிபார்த்தனர்',
+    'verify': '✓ சரிபார்',
+    'verified': 'சரிபார்க்கப்பட்டது',
+    'spam': '✕ ஸ்பேம்',
   },
 
   bn: {
@@ -511,6 +531,10 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     enabled_64dp: 'সক্ষম (64dp)',
     disabled_48dp: 'অক্ষম (স্ট্যান্ডার্ড 48dp)',
     'High waves and strong winds expected in the selected zone.': 'নির্বাচিত অঞ্চলে উঁচু ঢেউ এবং শক্তিশালী বাতাসের পূর্বাভাস রয়েছে।',
+    'fishers_verified': 'জেলেদের দ্বারা যাচাইকৃত',
+    'verify': '✓ যাচাই করুন',
+    'verified': 'যাচাইকৃত',
+    'spam': '✕ স্প্যাম',
   },
   or: {
     type_query: 'ଆପଣଙ୍କ ପ୍ରଶ୍ନ ଏଠାରେ ଲେଖନ୍ତୁ...',
@@ -598,6 +622,10 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     enabled_64dp: 'ସକ୍ଷମ (64dp)',
     disabled_48dp: 'ଅକ୍ଷମ (ଷ୍ଟାଣ୍ଡାର୍ଡ 48dp)',
     'High waves and strong winds expected in the selected zone.': 'ଚୟନ କରାଯାଇଥିବା ଅଞ୍ଚଳରେ ଉଚ୍ଚ ଲହରୀ ଏବଂ ପ୍ରବଳ ପବନର ସମ୍ଭାବନା ଅଛି।',
+    'fishers_verified': 'ମତ୍ସ୍ୟଜୀବୀଙ୍କ ଦ୍ୱାରା ଯାଞ୍ଚ କରାଯାଇଛି',
+    'verify': '✓ ଯାଞ୍ଚ କରନ୍ତୁ',
+    'verified': 'ଯାଞ୍ଚ କରାଯାଇଛି',
+    'spam': '✕ ସ୍ପାମ୍',
   },
   ml: {
     type_query: 'നിങ്ങളുടെ ചോദ്യം ഇവിടെ നൽകുക...',
@@ -685,6 +713,10 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     enabled_64dp: 'പ്രവർത്തനക്ഷമമാക്കി (64dp)',
     disabled_48dp: 'പ്രവർത്തനരഹിതമാക്കി (സ്റ്റാൻഡേർഡ് 48dp)',
     'High waves and strong winds expected in the selected zone.': 'തിരഞ്ഞെടുത്ത മേഖലയിൽ ഉയർന്ന തിരമാലകൾക്കും ശക്തമായ കാറ്റിനും സാധ്യതയുണ്ട്.',
+    'fishers_verified': 'മത്സ്യത്തൊഴിലാളികൾ പരിശോധിച്ചു',
+    'verify': '✓ പരിശോധിക്കുക',
+    'verified': 'പരിശോധിച്ചു',
+    'spam': '✕ സ്പാം',
   },
   te: {
     type_query: 'మీ ప్రశ్నను ఇక్కడ టైప్ చేయండి...',
@@ -772,6 +804,10 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     enabled_64dp: 'ప్రారంభించబడింది (64dp)',
     disabled_48dp: 'నిలిపివేయబడింది (ప్రామాణిక 48dp)',
     'High waves and strong winds expected in the selected zone.': 'ఎంచుకున్న జోన్‌లో అధిక అలలు మరియు బలమైన గాలులు ఆశించబడుతున్నాయి.',
+    'fishers_verified': 'మత్స్యకారులు ధృవీకరించారు',
+    'verify': '✓ ధృవీకరించండి',
+    'verified': 'ధృవీకరించబడింది',
+    'spam': '✕ స్పామ్',
   },
   kn: {
     type_query: 'ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಇಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ...',
@@ -859,6 +895,10 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     enabled_64dp: 'ಸಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ (64dp)',
     disabled_48dp: 'ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ (ಪ್ರಮಾಣಿತ 48dp)',
     'High waves and strong winds expected in the selected zone.': 'ಆಯ್ಕೆಮಾಡಿದ ವಲಯದಲ್ಲಿ ಎತ್ತರದ ಅಲೆಗಳು ಮತ್ತು ಬಲವಾದ ಗಾಳಿಯನ್ನು ನಿರೀಕ್ಷಿಸಲಾಗಿದೆ.',
+    'fishers_verified': 'ಮೀನುಗಾರರು ಪರಿಶೀಲಿಸಿದ್ದಾರೆ',
+    'verify': '✓ ಪರಿಶೀಲಿಸಿ',
+    'verified': 'ಪರಿಶೀಲಿಸಲಾಗಿದೆ',
+    'spam': '✕ ಸ್ಪ್ಯಾಮ್',
   },
 };
 
