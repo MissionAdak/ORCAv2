@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Alert, Animated } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -121,6 +121,10 @@ export default function AIScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundDark }]}>
+      <KeyboardAvoidingView 
+        style={styles.container} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <Text style={[typography.h2, { color: colors.textPrimary, padding: 16 }]}>
         {t('nav_ai') || 'ORCA AI Assistant'}
       </Text>
@@ -142,36 +146,44 @@ export default function AIScreen() {
       </ScrollView>
       
       <View style={[styles.inputContainer, { borderTopColor: colors.surfaceBorder }]}>
-        <View style={styles.inputWrapper}>
-          <Input 
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder={t('type_query') || "Type your query here..."}
-            editable={status === 'idle'}
-          />
-        </View>
-        
-        {status === 'processing' ? (
-          <ActivityIndicator size="large" color={colors.accentBlue} style={{ marginLeft: 16 }} />
-        ) : (
-          <View style={styles.actions}>
-            {status === 'recording' ? (
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <Button 
-                  title={t('stop') || "Stop"} 
-                  onPress={stopRecording} 
-                  variant="secondary" 
-                  style={{ backgroundColor: 'red', borderColor: 'red' }}
-                />
-              </Animated.View>
-            ) : (
-              <Button title={t('mic') || "Mic"} onPress={startRecording} variant="secondary" />
-            )}
-            <View style={{ width: 8 }} />
-            <Button title={t('send') || "Send"} onPress={handleSend} variant="primary" disabled={status !== 'idle'} />
+        {status === 'recording' ? (
+          <View style={styles.recordingOverlay}>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <View style={styles.pulseCircle} />
+            </Animated.View>
+            <Text style={[typography.h3, { color: colors.accentBlue, marginLeft: 16 }]}>Listening...</Text>
+            <View style={{ flex: 1 }} />
+            <Button 
+              title={t('stop') || "Stop"} 
+              onPress={stopRecording} 
+              variant="secondary" 
+              style={{ backgroundColor: 'red', borderColor: 'red' }}
+            />
           </View>
+        ) : (
+          <>
+            <View style={styles.inputWrapper}>
+              <Input 
+                value={inputText}
+                onChangeText={setInputText}
+                placeholder={t('type_query') || "Type your query here..."}
+                editable={status === 'idle'}
+              />
+            </View>
+            
+            {status === 'processing' ? (
+              <ActivityIndicator size="large" color={colors.accentBlue} style={{ marginLeft: 16 }} />
+            ) : (
+              <View style={styles.actions}>
+                <Button title={t('mic') || "Mic"} onPress={startRecording} variant="secondary" />
+                <View style={{ width: 8 }} />
+                <Button title={t('send') || "Send"} onPress={handleSend} variant="primary" disabled={status !== 'idle'} />
+              </View>
+            )}
+          </>
         )}
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -188,5 +200,7 @@ const styles = StyleSheet.create({
     alignItems: 'center' 
   },
   inputWrapper: { flex: 1 },
-  actions: { flexDirection: 'row', marginLeft: 12, alignItems: 'center' }
+  actions: { flexDirection: 'row', marginLeft: 12, alignItems: 'center' },
+  recordingOverlay: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  pulseCircle: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'red' }
 });
