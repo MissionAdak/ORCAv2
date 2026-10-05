@@ -77,8 +77,14 @@ export default function SplashScreen({ navigation }: RootStackScreenProps<'Splas
           <Text style={[typography.bodySmall, { color: colors.textMuted, textAlign: 'center' }]}>
             Marine Intelligence & Decision-Support
           </Text>
+          <Text style={[typography.bodySmall, { color: colors.textMuted, textAlign: 'center', marginTop: 16 }]}>
+            Smart India Hackathon
+          </Text>
           <Text style={[typography.bodySmall, { color: colors.textMuted, textAlign: 'center', marginTop: 2 }]}>
-            Smart India Hackathon · PS 26176
+            Team Prototype_ (ID: 143377)
+          </Text>
+          <Text style={[typography.bodySmall, { color: colors.textMuted, textAlign: 'center', marginTop: 2 }]}>
+            PS 26176
           </Text>
         </View>
 
