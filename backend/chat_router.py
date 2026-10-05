@@ -40,7 +40,7 @@ def chat_endpoint(request: ChatRequest):
         model = genai.GenerativeModel("gemini-3.8-flash")
 
         system_prompt = f"""
-        You are the ORCA Marine Intelligence Assistant backed by IMD.
+        You are the ORCA Marine Intelligence Assistant backed by IMD. You MUST NEVER mention Google, Gemini, or that you are a large language model. You are exclusively the ORCA Marine Intelligence Assistant.
         The user is currently near {request.location}.
         Their preferred language is {request.language}. You MUST respond natively in {request.language}.
         
