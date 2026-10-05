@@ -22,14 +22,14 @@ class ChatResponse(BaseModel):
     evidence: Optional[dict] = None
     error: Optional[str] = None
 
+class ChatRequest(BaseModel):
+    query: str
+    language: str = "en"
+    location: str = "Versova"
+    want_audio_response: bool = False
+
 @router.post("/api/chat", response_model=ChatResponse)
-def chat_endpoint(
-    text: Optional[str] = Form(None),
-    audio: Optional[UploadFile] = File(None),
-    language: str = Form("en"),
-    location: Optional[str] = Form("Versova"),
-    want_audio_response: bool = Form(False)
-):
+def chat_endpoint(request: ChatRequest):
     try:
         # Initialize Gemini 3.8 Flash
         api_key = os.environ.get("GEMINI_API_KEY")
@@ -41,8 +41,8 @@ def chat_endpoint(
 
         system_prompt = f"""
         You are the ORCA Marine Intelligence Assistant backed by IMD.
-        The user is currently near {location}.
-        Their preferred language is {language}. You MUST respond natively in {language}.
+        The user is currently near {request.location}.
+        Their preferred language is {request.language}. You MUST respond natively in {request.language}.
         
         Your capabilities and responsibilities include answering queries related to:
         1. Locating the nearest Potential Fishing Zones (PFZ) today.
@@ -58,32 +58,18 @@ def chat_endpoint(
         You must synthesize actionable recommendations, perform spatial-temporal reasoning, and explain the reasoning behind your decisions clearly.
         Provide concise, actionable marine insights. Use the exact terminology: 'Potential Fishing Zone' and 'International Maritime Boundary Line'.
         
+        MANDATORY LANGUAGE RULE: You must generate your entire response strictly in the requested language. For example, if the requested language is Marathi ('mr-IN' or 'mr'), write exclusively in Marathi script. If Kannada ('kn-IN' or 'kn'), write in Kannada. Do not default to English unless English ('en-IN' or 'en') is explicitly requested.
+        
         CRITICAL FORMATTING INSTRUCTION: Do NOT use any LaTeX, MathJax, or markdown math delimiters (such as $ or $$) for coordinates, temperatures, or any numbers. Write plain text and use standard unicode symbols instead (e.g. write "19° 09' N" instead of "$19^\circ 09' \text{{N}}$", and "28.7°C" instead of "$28.7^\circ \text{{C}}$").
         ALSO CRITICAL: Do NOT use ANY Markdown formatting. Do not use asterisks (* or **) for bold/italics. Do not use hash symbols (#) for headers. Output ONLY pure, unformatted plain text paragraphs. 
         """
 
         contents = [system_prompt]
 
-        if audio:
-            audio_bytes = audio.file.read()
-            # React Native often sends audio without a specific mime type or as mp4/aac. 
-            # We supply a fallback mime_type if it is missing or generic.
-            mime = audio.content_type
-            if not mime or mime == "application/octet-stream":
-                mime = "audio/mp3" 
-            elif mime in ["audio/m4a", "audio/x-m4a"]:
-                mime = "audio/mp4"
-                
-            contents.append({
-                "mime_type": mime,
-                "data": audio_bytes
-            })
-
-        if text:
-            contents.append(text)
-
-        if not audio and not text:
-            return ChatResponse(status="CLARIFICATION", text_response="Please provide text or audio input.")
+        if not request.query:
+            return ChatResponse(status="CLARIFICATION", text_response="Please provide text input.")
+            
+        contents.append(request.query)
 
         # --- Execute One-Shot Gemini Generation ---
         import google.api_core.exceptions # type: ignore
@@ -112,7 +98,7 @@ def chat_endpoint(
 
         # --- Optional TTS ---
         audio_b64 = None
-        if want_audio_response:
+        if request.want_audio_response:
             try:
                 # Still mocking TTS unless connected to a specific TTS provider
                 audio_bytes = b"mock_audio_data"

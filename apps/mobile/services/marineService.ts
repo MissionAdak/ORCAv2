@@ -23,16 +23,8 @@ export const MarineService = {
    * POST /api/chat
    * Sends voice (audio file) or text to the Bhashini service.
    */
-  sendChatIntent: async (audioFile?: any, text?: string) => {
-    const formData = new FormData();
-    if (audioFile) {
-      formData.append('audio', audioFile);
-    }
-    if (text) {
-      formData.append('text', text);
-    }
-    // Pass isMultipart = true to handle FormData correctly
-    return apiClient.post('/api/chat', formData, true);
+  sendChatIntent: async (text: string, language: string = 'en', location: string = 'Versova') => {
+    return apiClient.post('/api/chat', { query: text, language, location });
   },
 
   /**

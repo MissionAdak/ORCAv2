@@ -17,12 +17,17 @@ export const apiClient = {
         Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
       }
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status}`);
@@ -44,11 +49,16 @@ export const apiClient = {
         headers['Content-Type'] = 'application/json';
       }
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const response = await fetch(`${BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: headers,
         body: isMultipart ? data : JSON.stringify(data),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status}`);

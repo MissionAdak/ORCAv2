@@ -6,19 +6,33 @@ import { useLanguage } from '../context/LanguageContext';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { MarineService } from '../services/marineService';
-import { useAudioRecorder, RecordingPresets, requestRecordingPermissionsAsync } from 'expo-audio';
+import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
+
+const getLocaleCode = (lang: string) => {
+  const map: Record<string, string> = {
+    'en': 'en-IN',
+    'mr': 'mr-IN',
+    'hi': 'hi-IN',
+    'gu': 'gu-IN',
+    'ta': 'ta-IN',
+    'bn': 'bn-IN',
+    'or': 'or-IN',
+    'ml': 'ml-IN',
+    'te': 'te-IN',
+    'kn': 'kn-IN',
+  };
+  return map[lang] || 'en-IN';
+};
 
 export default function AIScreen() {
   const { colors, typography } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [inputText, setInputText] = useState('');
   
   // Status: idle | recording | processing
   const [status, setStatus] = useState<'idle' | 'recording' | 'processing'>('idle');
   const [responsePayload, setResponsePayload] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   
   // Visual pulsing indicator for recording
   const [pulseAnim] = useState(new Animated.Value(1));
@@ -37,6 +51,30 @@ export default function AIScreen() {
     }
   }, [status]);
 
+  useEffect(() => {
+    Voice.onSpeechResults = (e: SpeechResultsEvent) => {
+      if (e.value && e.value.length > 0) {
+        setInputText(e.value[0]);
+      }
+    };
+    
+    Voice.onSpeechEnd = () => {
+      setStatus('idle');
+    };
+    
+    Voice.onSpeechError = (e: SpeechErrorEvent) => {
+      console.error('Speech recognition error:', e.error);
+      if (e.error?.message !== '7/No match') {
+        setError("Voice recognition error: " + e.error?.message);
+      }
+      setStatus('idle');
+    };
+    
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
+
   const handleSend = async () => {
     if (!inputText.trim()) return;
     
@@ -45,7 +83,7 @@ export default function AIScreen() {
     setResponsePayload(null);
     
     try {
-      const res = await MarineService.sendChatIntent(undefined, inputText);
+      const res = await MarineService.sendChatIntent(inputText, language);
       setResponsePayload(res);
       setInputText('');
     } catch (err) {
@@ -58,21 +96,13 @@ export default function AIScreen() {
 
   const startRecording = async () => {
     try {
-      const permission = await requestRecordingPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(t('permission_denied') || "Permission Denied", t('mic_access_required') || "Microphone access is required to use Voice AI.");
-        return;
-      }
-      
-      console.log("Preparing audio recorder...");
-      await recorder.prepareToRecordAsync();
-
-      console.log("Audio recording started...");
-      recorder.record();
+      setError(null);
+      setInputText('');
+      await Voice.start(getLocaleCode(language));
       setStatus('recording');
     } catch (err) {
       console.error('Failed to start recording:', err);
-      Alert.alert("Error", "Failed to start recording");
+      Alert.alert("Error", "Failed to start speech recognition. Please grant microphone permissions.");
       setStatus('idle');
     }
   };
@@ -81,40 +111,14 @@ export default function AIScreen() {
     if (status !== 'recording') return;
     
     try {
-      console.log("Audio recording stopped...");
-      await recorder.stop();
-      
-      const uri = recorder.uri;
-      if (uri) {
-        console.log("Valid audio file generated at URI:", uri);
-        handleSendVoice(uri);
-      } else {
-        console.warn("No valid URI returned from recorder.");
-        setStatus('idle');
+      await Voice.stop();
+      setStatus('idle');
+      // If we have text transcribed, send it
+      if (inputText.trim()) {
+        handleSend();
       }
     } catch (err) {
       console.error('Failed to stop recording:', err);
-      setStatus('idle');
-    }
-  };
-
-  const handleSendVoice = async (uri: string) => {
-    setStatus('processing');
-    setError(null);
-    setResponsePayload(null);
-    try {
-      const audioFile = {
-        uri: uri,
-        name: 'recording.m4a',
-        type: 'audio/m4a',
-      };
-      console.log("Dispatching audio payload to backend...");
-      const res = await MarineService.sendChatIntent(audioFile);
-      setResponsePayload(res);
-    } catch (err) {
-      console.error("AI request failed:", err);
-      setError("Failed to connect to AI Service. Falling back to offline cache...");
-    } finally {
       setStatus('idle');
     }
   };
