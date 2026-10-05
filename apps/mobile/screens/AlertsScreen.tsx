@@ -28,6 +28,14 @@ const AlertCard = ({ alert, index, colors, typography, t, navigation }: any) => 
     setVisible(false);
   };
 
+  const getTypeDisplay = (type: string, severity: string) => {
+    const raw = t(type) || type || 'Alert';
+    const upper = typeof raw === 'string' ? raw.toUpperCase() : raw;
+    if (severity === 'High') return `🚨 ${upper}`;
+    if (severity === 'Moderate') return `⚠️ ${upper}`;
+    return `ℹ️ ${upper}`;
+  };
+
   return (
     <Pressable
       key={index}
@@ -37,16 +45,16 @@ const AlertCard = ({ alert, index, colors, typography, t, navigation }: any) => 
         { backgroundColor: colors.backgroundCard, opacity: pressed ? 0.8 : 1 }
       ]}
     >
-      <Text style={[typography.h3, { color: alert.severity === 'High' ? colors.riskHigh : colors.riskModerate, marginBottom: 8 }]}>
-        {t(alert.title || alert.type) || alert.title || alert.type || 'Alert'}
+      <Text style={[typography.h2, { fontWeight: '900', fontSize: 18, color: alert.severity === 'High' ? colors.riskHigh : colors.riskModerate, marginBottom: 8 }]}>
+        {getTypeDisplay(alert.title || alert.type, alert.severity)}
       </Text>
       
       <Image source={{ uri: mapUrl }} style={styles.miniMap} />
 
-      <Text style={[typography.bodyMedium, { color: colors.textPrimary, marginVertical: 8 }]}>
+      <Text style={[typography.bodyMedium, { color: colors.textPrimary, marginVertical: 8, fontSize: 15 }]}>
         {t(alert.description || alert.message) || alert.description || alert.message}
       </Text>
-      <Text style={[typography.bodySmall, { color: colors.textMuted }]}>
+      <Text style={[typography.bodyMedium, { color: alert.severity === 'High' ? '#FF3B30' : '#FF9500', fontWeight: 'bold' }]}>
         {t('alert_severity') || 'Severity:'} {t(alert.severity) || alert.severity}
       </Text>
 

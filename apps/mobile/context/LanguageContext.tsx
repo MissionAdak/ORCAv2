@@ -108,6 +108,7 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     wet_hand_desc: 'टॅप लक्ष्य मोठे करते आणि उच्च-कॉन्ट्रास्ट लागू करते',
     enabled_64dp: 'सक्षम (64dp)',
     disabled_48dp: 'अक्षम (प्रमाणित 48dp)',
+    'High waves and strong winds expected in the selected zone.': 'निवडलेल्या क्षेत्रात उंच लाटा आणि सोसाट्याच्या वाऱ्याची शक्यता आहे.',
   },
   hi: {
     knots: 'नॉट',
@@ -194,6 +195,7 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     wet_hand_desc: 'टैप लक्ष्य को बड़ा करता है और उच्च-विपरीत लागू करता है',
     enabled_64dp: 'सक्षम (64dp)',
     disabled_48dp: 'अक्षम (मानक 48dp)',
+    'High waves and strong winds expected in the selected zone.': 'चयनित क्षेत्र में ऊंची लहरों और तेज हवाओं की उम्मीद है।',
   },
   en: {
     knots: 'knots',
@@ -280,6 +282,7 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     wet_hand_desc: 'Enlarges tap targets and forces high-contrast',
     enabled_64dp: 'Enabled (64dp Target Active)',
     disabled_48dp: 'Disabled (Standard 48dp)',
+    'High waves and strong winds expected in the selected zone.': 'High waves and strong winds expected in the selected zone.',
   },
   gu: {
     type_query: 'તમારો પ્રશ્ન અહીં ટાઇપ કરો...',
@@ -349,6 +352,7 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     wet_hand_desc: 'ટૅપ લક્ષ્યોને મોટા કરે છે અને ઉચ્ચ-કોન્ટ્રાસ્ટ લાગુ કરે છે',
     enabled_64dp: 'સક્ષમ (64dp)',
     disabled_48dp: 'અક્ષમ (પ્રમાણભૂત 48dp)',
+    'High waves and strong winds expected in the selected zone.': 'પસંદ કરેલ વિસ્તારમાં ઊંચા મોજા અને ભારે પવનની શક્યતા છે.',
   },
   ta: {
     type_query: 'உங்கள் கேள்வியை இங்கே தட்டச்சு செய்க...',
@@ -418,6 +422,7 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     wet_hand_desc: 'தட்டும் இலக்குகளை பெரிதாக்குகிறது மற்றும் அதிக கான்ட்ராஸ்ட்டை கட்டாயப்படுத்துகிறது',
     enabled_64dp: 'இயக்கப்பட்டது (64dp)',
     disabled_48dp: 'முடக்கப்பட்டது (நிலையான 48dp)',
+    'High waves and strong winds expected in the selected zone.': 'தேர்ந்தெடுக்கப்பட்ட மண்டலத்தில் உயர்ந்த அலைகள் மற்றும் பலத்த காற்று வீசும் என எதிர்பார்க்கப்படுகிறது.',
   },
 
   bn: {
@@ -505,6 +510,7 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     wet_hand_desc: 'ট্যাপ লক্ষ্যগুলি বড় করে এবং উচ্চ-কন্ট্রাস্ট জোরদার করে',
     enabled_64dp: 'সক্ষম (64dp)',
     disabled_48dp: 'অক্ষম (স্ট্যান্ডার্ড 48dp)',
+    'High waves and strong winds expected in the selected zone.': 'নির্বাচিত অঞ্চলে উঁচু ঢেউ এবং শক্তিশালী বাতাসের পূর্বাভাস রয়েছে।',
   },
   or: {
     type_query: 'ଆପଣଙ୍କ ପ୍ରଶ୍ନ ଏଠାରେ ଲେଖନ୍ତୁ...',
@@ -591,6 +597,7 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     wet_hand_desc: 'ଟ୍ୟାପ୍ ଲକ୍ଷ୍ୟଗୁଡ଼ିକୁ ବଡ଼ କରେ ଏବଂ ଉଚ୍ଚ-କଣ୍ଟ୍ରାଷ୍ଟ ଲାଗୁ କରେ',
     enabled_64dp: 'ସକ୍ଷମ (64dp)',
     disabled_48dp: 'ଅକ୍ଷମ (ଷ୍ଟାଣ୍ଡାର୍ଡ 48dp)',
+    'High waves and strong winds expected in the selected zone.': 'ଚୟନ କରାଯାଇଥିବା ଅଞ୍ଚଳରେ ଉଚ୍ଚ ଲହରୀ ଏବଂ ପ୍ରବଳ ପବନର ସମ୍ଭାବନା ଅଛି।',
   },
   ml: {
     type_query: 'നിങ്ങളുടെ ചോദ്യം ഇവിടെ നൽകുക...',
@@ -677,6 +684,7 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     wet_hand_desc: 'ടാപ്പ് ടാർഗെറ്റുകൾ വലുതാക്കുകയും ഉയർന്ന കോൺട്രാസ്റ്റ് പ്രയോഗിക്കുകയും ചെയ്യുന്നു',
     enabled_64dp: 'പ്രവർത്തനക്ഷമമാക്കി (64dp)',
     disabled_48dp: 'പ്രവർത്തനരഹിതമാക്കി (സ്റ്റാൻഡേർഡ് 48dp)',
+    'High waves and strong winds expected in the selected zone.': 'തിരഞ്ഞെടുത്ത മേഖലയിൽ ഉയർന്ന തിരമാലകൾക്കും ശക്തമായ കാറ്റിനും സാധ്യതയുണ്ട്.',
   },
   te: {
     type_query: 'మీ ప్రశ్నను ఇక్కడ టైప్ చేయండి...',
@@ -763,6 +771,7 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     wet_hand_desc: 'ట్యాప్ లక్ష్యాలను పెద్దవి చేస్తుంది మరియు అధిక-కాంట్రాస్ట్‌ను బలవంతం చేస్తుంది',
     enabled_64dp: 'ప్రారంభించబడింది (64dp)',
     disabled_48dp: 'నిలిపివేయబడింది (ప్రామాణిక 48dp)',
+    'High waves and strong winds expected in the selected zone.': 'ఎంచుకున్న జోన్‌లో అధిక అలలు మరియు బలమైన గాలులు ఆశించబడుతున్నాయి.',
   },
   kn: {
     type_query: 'ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಇಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ...',
@@ -849,6 +858,7 @@ const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     wet_hand_desc: 'ಟ್ಯಾಪ್ ಗುರಿಗಳನ್ನು ದೊಡ್ಡದಾಗಿಸುತ್ತದೆ ಮತ್ತು ಹೆಚ್ಚಿನ-ಕಾಂಟ್ರಾಸ್ಟ್ ಅನ್ನು ಒತ್ತಾಯಿಸುತ್ತದೆ',
     enabled_64dp: 'ಸಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ (64dp)',
     disabled_48dp: 'ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ (ಪ್ರಮಾಣಿತ 48dp)',
+    'High waves and strong winds expected in the selected zone.': 'ಆಯ್ಕೆಮಾಡಿದ ವಲಯದಲ್ಲಿ ಎತ್ತರದ ಅಲೆಗಳು ಮತ್ತು ಬಲವಾದ ಗಾಳಿಯನ್ನು ನಿರೀಕ್ಷಿಸಲಾಗಿದೆ.',
   },
 };
 
