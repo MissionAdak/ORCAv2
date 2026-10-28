@@ -35,7 +35,13 @@ import os
 from sqlalchemy import create_engine
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///orca_cache.db")
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=20,
+    max_overflow=20,
+    pool_timeout=60,
+    pool_pre_ping=True,
+)
 
 class DBConnectionProxy:
     def __init__(self, raw_conn, is_postgres):
@@ -56,7 +62,15 @@ class DBConnectionProxy:
         self.raw_conn.commit()
 
     def close(self):
-        self.raw_conn.close()
+        if self.raw_conn is not None:
+            self.raw_conn.close()
+            self.raw_conn = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
 def get_connection():
     """Create a connection to the ORCA database."""
@@ -308,41 +322,42 @@ def analyze_route(request: DistanceRequest):
 def create_sar_incident(request: SARCreateRequest):
 
     conn = get_connection()
-
-    cursor = conn.execute(
-        """
-        INSERT INTO sar_incidents
-        (
-            status,
-            last_known_latitude,
-            last_known_longitude,
-            object_type,
-            people_count
+    try:
+        cursor = conn.execute(
+            """
+            INSERT INTO sar_incidents
+            (
+                status,
+                last_known_latitude,
+                last_known_longitude,
+                object_type,
+                people_count
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                "active",
+                request.last_known_lat,
+                request.last_known_lon,
+                request.object_type,
+                request.people_count,
+            ),
         )
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (
-            "active",
-            request.last_known_lat,
-            request.last_known_lon,
-            request.object_type,
-            request.people_count,
-        ),
-    )
 
-    incident_id = cursor.lastrowid
+        incident_id = cursor.lastrowid
 
-    conn.commit()
-    conn.close()
+        conn.commit()
 
-    return {
-        "incident_id": incident_id,
-        "status": "active",
-        "last_known_latitude": request.last_known_lat,
-        "last_known_longitude": request.last_known_lon,
-        "object_type": request.object_type,
-        "people_count": request.people_count,
-    }
+        return {
+            "incident_id": incident_id,
+            "status": "active",
+            "last_known_latitude": request.last_known_lat,
+            "last_known_longitude": request.last_known_lon,
+            "object_type": request.object_type,
+            "people_count": request.people_count,
+        }
+    finally:
+        conn.close()
 
 
 # ============================================================
@@ -353,70 +368,69 @@ def create_sar_incident(request: SARCreateRequest):
 def predict_sar_drift(request: SARDiftRequest):
 
     conn = get_connection()
+    try:
+        incident = conn.execute(
+            """
+            SELECT
+                last_known_latitude,
+                last_known_longitude,
+                object_type
+            FROM sar_incidents
+            WHERE id = ?
+            """,
+            (request.incident_id,),
+        ).fetchone()
 
-    incident = conn.execute(
-        """
-        SELECT
-            last_known_latitude,
-            last_known_longitude,
+        if incident is None:
+            return {
+                "error": "SAR incident not found"
+            }
+
+        latitude, longitude, object_type = incident
+
+        prediction = predict_drift(
+            latitude,
+            longitude,
+            request.current_speed_knots,
+            request.current_direction_degrees,
+            request.wind_speed_knots,
+            request.wind_direction_degrees,
+            request.hours,
             object_type
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (request.incident_id,),
-    ).fetchone()
+        )
 
-    if incident is None:
-        conn.close()
+        conn.execute(
+            """
+            INSERT INTO sar_predictions
+            (
+                incident_id,
+                predicted_latitude,
+                predicted_longitude,
+                uncertainty_km
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                request.incident_id,
+                prediction["predicted_latitude"],
+                prediction["predicted_longitude"],
+                prediction["uncertainty_km"],
+            ),
+        )
+
+        conn.commit()
 
         return {
-            "error": "SAR incident not found"
+            "incident_id": request.incident_id,
+            "prediction": prediction,
+            "estimate_type": "Probabilistic Search-Area Estimate",
+            "warning": (
+                "The prediction is an estimate based on supplied "
+                "environmental inputs and is not an exact survivor location."
+            ),
         }
-
-    latitude, longitude, object_type = incident
-
-    prediction = predict_drift(
-        latitude,
-        longitude,
-        request.current_speed_knots,
-        request.current_direction_degrees,
-        request.wind_speed_knots,
-        request.wind_direction_degrees,
-        request.hours,
-        object_type
-    )
-
-    conn.execute(
-        """
-        INSERT INTO sar_predictions
-        (
-            incident_id,
-            predicted_latitude,
-            predicted_longitude,
-            uncertainty_km
-        )
-        VALUES (?, ?, ?, ?)
-        """,
-        (
-            request.incident_id,
-            prediction["predicted_latitude"],
-            prediction["predicted_longitude"],
-            prediction["uncertainty_km"],
-        ),
-    )
-
-    conn.commit()
-    conn.close()
-
-    return {
-        "incident_id": request.incident_id,
-        "prediction": prediction,
-        "estimate_type": "Probabilistic Search-Area Estimate",
-        "warning": (
-            "The prediction is an estimate based on supplied "
-            "environmental inputs and is not an exact survivor location."
-        ),
-    }
+    finally:
+        conn.close()
 
 
 # ============================================================
@@ -427,64 +441,63 @@ def predict_sar_drift(request: SARDiftRequest):
 def add_sar_location(request: SARLocationRequest):
 
     conn = get_connection()
+    try:
+        incident = conn.execute(
+            """
+            SELECT id
+            FROM sar_incidents
+            WHERE id = ?
+            """,
+            (request.incident_id,),
+        ).fetchone()
 
-    incident = conn.execute(
-        """
-        SELECT id
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (request.incident_id,),
-    ).fetchone()
+        if incident is None:
+            return {
+                "error": "SAR incident not found"
+            }
 
-    if incident is None:
-        conn.close()
+        conn.execute(
+            """
+            INSERT INTO sar_location_history
+            (
+                incident_id,
+                latitude,
+                longitude
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                request.incident_id,
+                request.latitude,
+                request.longitude,
+            ),
+        )
+
+        conn.execute(
+            """
+            UPDATE sar_incidents
+            SET
+                last_known_latitude = ?,
+                last_known_longitude = ?
+            WHERE id = ?
+            """,
+            (
+                request.latitude,
+                request.longitude,
+                request.incident_id,
+            ),
+        )
+
+        conn.commit()
 
         return {
-            "error": "SAR incident not found"
+            "incident_id": request.incident_id,
+            "latitude": request.latitude,
+            "longitude": request.longitude,
+            "status": "location recorded",
         }
-
-    conn.execute(
-        """
-        INSERT INTO sar_location_history
-        (
-            incident_id,
-            latitude,
-            longitude
-        )
-        VALUES (?, ?, ?)
-        """,
-        (
-            request.incident_id,
-            request.latitude,
-            request.longitude,
-        ),
-    )
-
-    conn.execute(
-        """
-        UPDATE sar_incidents
-        SET
-            last_known_latitude = ?,
-            last_known_longitude = ?
-        WHERE id = ?
-        """,
-        (
-            request.latitude,
-            request.longitude,
-            request.incident_id,
-        ),
-    )
-
-    conn.commit()
-    conn.close()
-
-    return {
-        "incident_id": request.incident_id,
-        "latitude": request.latitude,
-        "longitude": request.longitude,
-        "status": "location recorded",
-    }
+    finally:
+        conn.close()
 
 
 # ============================================================
@@ -498,89 +511,88 @@ def generate_search_zone(
 ):
 
     conn = get_connection()
+    try:
+        prediction = conn.execute(
+            """
+            SELECT
+                predicted_latitude,
+                predicted_longitude,
+                uncertainty_km
+            FROM sar_predictions
+            WHERE incident_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (incident_id,),
+        ).fetchone()
 
-    prediction = conn.execute(
-        """
-        SELECT
-            predicted_latitude,
-            predicted_longitude,
-            uncertainty_km
-        FROM sar_predictions
-        WHERE incident_id = ?
-        ORDER BY id DESC
-        LIMIT 1
-        """,
-        (incident_id,),
-    ).fetchone()
+        if prediction is None:
+            return {
+                "error": "No SAR prediction found"
+            }
 
-    if prediction is None:
-        conn.close()
+        latitude, longitude, uncertainty_km = prediction
+
+        zone = create_search_zone(
+            latitude,
+            longitude,
+            uncertainty_km,
+        )
+
+        risk = calculate_risk_score(
+            risk_request.wave_score,
+            risk_request.wind_score,
+            risk_request.weather_score,
+            risk_request.current_score,
+            risk_request.geofence_score,
+            risk_request.alert_score,
+        )
+
+        zone["properties"]["risk_score"] = risk["risk_score"]
+        zone["properties"]["risk_level"] = risk["risk_level"]
+        zone["properties"]["recommended_action"] = risk["recommended_action"]
+
+        if risk["risk_level"] == "HIGH":
+            zone["properties"]["priority"] = "HIGH"
+
+        elif risk["risk_level"] == "MODERATE":
+            zone["properties"]["priority"] = "MEDIUM"
+
+        else:
+            zone["properties"]["priority"] = "LOW"
+
+        conn.execute(
+            """
+            INSERT INTO sar_search_zones
+            (
+                incident_id,
+                geometry,
+                probability,
+                risk_score,
+                priority,
+                recommended_action
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                incident_id,
+                json.dumps(zone["geometry"]),
+                1.0,
+                zone["properties"]["risk_score"],
+                zone["properties"]["priority"],
+                zone["properties"]["recommended_action"],
+            ),
+        )
+
+        conn.commit()
 
         return {
-            "error": "No SAR prediction found"
+            "incident_id": incident_id,
+            "search_zone": zone,
+            "risk": risk,
         }
-
-    latitude, longitude, uncertainty_km = prediction
-
-    zone = create_search_zone(
-        latitude,
-        longitude,
-        uncertainty_km,
-    )
-
-    risk = calculate_risk_score(
-        risk_request.wave_score,
-        risk_request.wind_score,
-        risk_request.weather_score,
-        risk_request.current_score,
-        risk_request.geofence_score,
-        risk_request.alert_score,
-    )
-
-    zone["properties"]["risk_score"] = risk["risk_score"]
-    zone["properties"]["risk_level"] = risk["risk_level"]
-    zone["properties"]["recommended_action"] = risk["recommended_action"]
-
-    if risk["risk_level"] == "HIGH":
-        zone["properties"]["priority"] = "HIGH"
-
-    elif risk["risk_level"] == "MODERATE":
-        zone["properties"]["priority"] = "MEDIUM"
-
-    else:
-        zone["properties"]["priority"] = "LOW"
-
-    conn.execute(
-        """
-        INSERT INTO sar_search_zones
-        (
-            incident_id,
-            geometry,
-            probability,
-            risk_score,
-            priority,
-            recommended_action
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (
-            incident_id,
-            json.dumps(zone["geometry"]),
-            1.0,
-            zone["properties"]["risk_score"],
-            zone["properties"]["priority"],
-            zone["properties"]["recommended_action"],
-        ),
-    )
-
-    conn.commit()
-    conn.close()
-
-    return {
-        "incident_id": incident_id,
-        "search_zone": zone,
-        "risk": risk,
-    }
+    finally:
+        conn.close()
 
 
 # ============================================================
@@ -591,19 +603,19 @@ def generate_search_zone(
 def particle_drift(request: SARParticleRequest):
 
     conn = get_connection()
-
-    incident = conn.execute(
-        """
-        SELECT
-            last_known_latitude,
-            last_known_longitude
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (request.incident_id,),
-    ).fetchone()
-
-    conn.close()
+    try:
+        incident = conn.execute(
+            """
+            SELECT
+                last_known_latitude,
+                last_known_longitude
+            FROM sar_incidents
+            WHERE id = ?
+            """,
+            (request.incident_id,),
+        ).fetchone()
+    finally:
+        conn.close()
 
     if incident is None:
         return {
@@ -643,68 +655,66 @@ def particle_drift(request: SARParticleRequest):
 def particle_search_zone(request: SARParticleRequest):
 
     conn = get_connection()
-
-    incident = conn.execute(
-        """
-        SELECT
-            last_known_latitude,
-            last_known_longitude
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (request.incident_id,),
-    ).fetchone()
-
-    if incident is None:
-        conn.close()
-
-        return {
-            "error": "SAR incident not found"
-        }
-
-    latitude, longitude = incident
-
-    particles = simulate_particles(
-        latitude,
-        longitude,
-        request.current_speed_knots,
-        request.current_direction_degrees,
-        request.wind_speed_knots,
-        request.wind_direction_degrees,
-        request.hours,
-        request.particle_count,
-    )
-
-    zone = create_particle_search_zone(particles)
-
-    if "geometry" in zone:
-
-        conn.execute(
+    try:
+        incident = conn.execute(
             """
-            INSERT INTO sar_search_zones
-            (
-                incident_id,
-                geometry
-            )
-            VALUES (?, ?)
+            SELECT
+                last_known_latitude,
+                last_known_longitude
+            FROM sar_incidents
+            WHERE id = ?
             """,
-            (
-                request.incident_id,
-                json.dumps(zone["geometry"]),
-            ),
+            (request.incident_id,),
+        ).fetchone()
+
+        if incident is None:
+            return {
+                "error": "SAR incident not found"
+            }
+
+        latitude, longitude = incident
+
+        particles = simulate_particles(
+            latitude,
+            longitude,
+            request.current_speed_knots,
+            request.current_direction_degrees,
+            request.wind_speed_knots,
+            request.wind_direction_degrees,
+            request.hours,
+            request.particle_count,
         )
 
-        conn.commit()
+        zone = create_particle_search_zone(particles)
 
-    conn.close()
+        if "geometry" in zone:
 
-    return {
-        "incident_id": request.incident_id,
-        "particle_count": len(particles),
-        "estimate_type": "Probabilistic Search-Area Estimate",
-        "search_zone": zone,
-        "saved_to_sar_database": True,
-    }
+            conn.execute(
+                """
+                INSERT INTO sar_search_zones
+                (
+                    incident_id,
+                    geometry
+                )
+                VALUES (?, ?)
+                """,
+                (
+                    request.incident_id,
+                    json.dumps(zone["geometry"]),
+                ),
+            )
+
+            conn.commit()
+
+        return {
+            "incident_id": request.incident_id,
+            "particle_count": len(particles),
+            "estimate_type": "Probabilistic Search-Area Estimate",
+            "search_zone": zone,
+            "saved_to_sar_database": True,
+        }
+    finally:
+        conn.close()
 
 
 # ============================================================
@@ -715,21 +725,21 @@ def particle_search_zone(request: SARParticleRequest):
 def check_sar_zone_eez(incident_id: int):
 
     conn = get_connection()
-
-    zone = conn.execute(
-        """
-        SELECT
-            id,
-            geometry
-        FROM sar_search_zones
-        WHERE incident_id = ?
-        ORDER BY id DESC
-        LIMIT 1
-        """,
-        (incident_id,),
-    ).fetchone()
-
-    conn.close()
+    try:
+        zone = conn.execute(
+            """
+            SELECT
+                id,
+                geometry
+            FROM sar_search_zones
+            WHERE incident_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (incident_id,),
+        ).fetchone()
+    finally:
+        conn.close()
 
     if zone is None:
         return {
@@ -765,22 +775,22 @@ def check_sar_zone_eez(incident_id: int):
 def get_sar_incident(incident_id: int):
 
     conn = get_connection()
-
-    incident = conn.execute(
-        """
-        SELECT
-            id,
-            status,
-            last_known_latitude,
-            last_known_longitude,
-            created_at
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (incident_id,),
-    ).fetchone()
-
-    conn.close()
+    try:
+        incident = conn.execute(
+            """
+            SELECT
+                id,
+                status,
+                last_known_latitude,
+                last_known_longitude,
+                created_at
+            FROM sar_incidents
+            WHERE id = ?
+            """,
+            (incident_id,),
+        ).fetchone()
+    finally:
+        conn.close()
 
     if incident is None:
         return {
@@ -804,19 +814,19 @@ def get_sar_incident(incident_id: int):
 def nearest_rescue(incident_id: int):
 
     conn = get_connection()
-
-    incident = conn.execute(
-        """
-        SELECT
-            last_known_latitude,
-            last_known_longitude
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (incident_id,),
-    ).fetchone()
-
-    conn.close()
+    try:
+        incident = conn.execute(
+            """
+            SELECT
+                last_known_latitude,
+                last_known_longitude
+            FROM sar_incidents
+            WHERE id = ?
+            """,
+            (incident_id,),
+        ).fetchone()
+    finally:
+        conn.close()
 
     if incident is None:
         return {
@@ -848,19 +858,19 @@ def nearest_rescue(incident_id: int):
 def sar_rescue_route(incident_id: int):
 
     conn = get_connection()
-
-    incident = conn.execute(
-        """
-        SELECT
-            last_known_latitude,
-            last_known_longitude
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (incident_id,),
-    ).fetchone()
-
-    conn.close()
+    try:
+        incident = conn.execute(
+            """
+            SELECT
+                last_known_latitude,
+                last_known_longitude
+            FROM sar_incidents
+            WHERE id = ?
+            """,
+            (incident_id,),
+        ).fetchone()
+    finally:
+        conn.close()
 
     if incident is None:
         return {
@@ -915,19 +925,19 @@ def rescue_route_hazard_check(
 ):
 
     conn = get_connection()
-
-    incident = conn.execute(
-        """
-        SELECT
-            last_known_latitude,
-            last_known_longitude
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (incident_id,),
-    ).fetchone()
-
-    conn.close()
+    try:
+        incident = conn.execute(
+            """
+            SELECT
+                last_known_latitude,
+                last_known_longitude
+            FROM sar_incidents
+            WHERE id = ?
+            """,
+            (incident_id,),
+        ).fetchone()
+    finally:
+        conn.close()
 
     if incident is None:
         return {
@@ -972,25 +982,25 @@ def rescue_route_hazard_check(
 def get_search_zones(incident_id: int):
 
     conn = get_connection()
-
-    zones = conn.execute(
-        """
-        SELECT
-            id,
-            geometry,
-            probability,
-            risk_score,
-            priority,
-            recommended_action,
-            created_at
-        FROM sar_search_zones
-        WHERE incident_id = ?
-        ORDER BY id DESC
-        """,
-        (incident_id,),
-    ).fetchall()
-
-    conn.close()
+    try:
+        zones = conn.execute(
+            """
+            SELECT
+                id,
+                geometry,
+                probability,
+                risk_score,
+                priority,
+                recommended_action,
+                created_at
+            FROM sar_search_zones
+            WHERE incident_id = ?
+            ORDER BY id DESC
+            """,
+            (incident_id,),
+        ).fetchall()
+    finally:
+        conn.close()
 
     return {
         "incident_id": incident_id,
@@ -1018,68 +1028,67 @@ def get_search_zones(incident_id: int):
 def add_sar_evidence(request: SAREvidenceRequest):
 
     conn = get_connection()
+    try:
+        incident = conn.execute(
+            """
+            SELECT id
+            FROM sar_incidents
+            WHERE id = ?
+            """,
+            (request.incident_id,),
+        ).fetchone()
 
-    incident = conn.execute(
-        """
-        SELECT id
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (request.incident_id,),
-    ).fetchone()
+        if incident is None:
+            return {
+                "error": "SAR incident not found"
+            }
 
-    if incident is None:
-        conn.close()
+        source_timestamp = request.source_timestamp
+
+        if source_timestamp is None:
+            source_timestamp = datetime.now(
+                timezone.utc
+            ).isoformat()
+
+        cursor = conn.execute(
+            """
+            INSERT INTO sar_evidence
+            (
+                incident_id,
+                evidence_type,
+                description,
+                source,
+                source_timestamp,
+                confidence
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                request.incident_id,
+                request.evidence_type,
+                request.description,
+                request.source,
+                source_timestamp,
+                request.confidence,
+            ),
+        )
+
+        evidence_id = cursor.lastrowid
+
+        conn.commit()
 
         return {
-            "error": "SAR incident not found"
+            "evidence_id": evidence_id,
+            "incident_id": request.incident_id,
+            "evidence_type": request.evidence_type,
+            "description": request.description,
+            "source": request.source,
+            "source_timestamp": source_timestamp,
+            "confidence": request.confidence,
+            "status": "evidence recorded",
         }
-
-    source_timestamp = request.source_timestamp
-
-    if source_timestamp is None:
-        source_timestamp = datetime.now(
-            timezone.utc
-        ).isoformat()
-
-    cursor = conn.execute(
-        """
-        INSERT INTO sar_evidence
-        (
-            incident_id,
-            evidence_type,
-            description,
-            source,
-            source_timestamp,
-            confidence
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (
-            request.incident_id,
-            request.evidence_type,
-            request.description,
-            request.source,
-            source_timestamp,
-            request.confidence,
-        ),
-    )
-
-    evidence_id = cursor.lastrowid
-
-    conn.commit()
-    conn.close()
-
-    return {
-        "evidence_id": evidence_id,
-        "incident_id": request.incident_id,
-        "evidence_type": request.evidence_type,
-        "description": request.description,
-        "source": request.source,
-        "source_timestamp": source_timestamp,
-        "confidence": request.confidence,
-        "status": "evidence recorded",
-    }
+    finally:
+        conn.close()
 
 
 # ============================================================
@@ -1090,25 +1099,25 @@ def add_sar_evidence(request: SAREvidenceRequest):
 def get_sar_evidence(incident_id: int):
 
     conn = get_connection()
-
-    evidence = conn.execute(
-        """
-        SELECT
-            id,
-            evidence_type,
-            description,
-            source,
-            source_timestamp,
-            confidence,
-            created_at
-        FROM sar_evidence
-        WHERE incident_id = ?
-        ORDER BY id DESC
-        """,
-        (incident_id,),
-    ).fetchall()
-
-    conn.close()
+    try:
+        evidence = conn.execute(
+            """
+            SELECT
+                id,
+                evidence_type,
+                description,
+                source,
+                source_timestamp,
+                confidence,
+                created_at
+            FROM sar_evidence
+            WHERE incident_id = ?
+            ORDER BY id DESC
+            """,
+            (incident_id,),
+        ).fetchall()
+    finally:
+        conn.close()
 
     return {
         "incident_id": incident_id,
@@ -1144,69 +1153,68 @@ def sar_mission_package(
     """Build one operational SAR package from the current incident state."""
 
     conn = get_connection()
+    try:
+        incident = conn.execute(
+            """
+            SELECT
+                id,
+                status,
+                last_known_latitude,
+                last_known_longitude,
+                created_at
+            FROM sar_incidents
+            WHERE id = ?
+            """,
+            (incident_id,),
+        ).fetchone()
 
-    incident = conn.execute(
-        """
-        SELECT
-            id,
-            status,
-            last_known_latitude,
-            last_known_longitude,
-            created_at
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (incident_id,),
-    ).fetchone()
+        if incident is None:
+            return {"error": "SAR incident not found"}
 
-    if incident is None:
+        zone_rows = conn.execute(
+            """
+            SELECT
+                id,
+                geometry,
+                probability,
+                risk_score,
+                priority,
+                recommended_action,
+                created_at
+            FROM sar_search_zones
+            WHERE incident_id = ?
+            ORDER BY
+                CASE priority
+                    WHEN 'HIGH' THEN 1
+                    WHEN 'MEDIUM' THEN 2
+                    WHEN 'LOW' THEN 3
+                    ELSE 4
+                END,
+                probability DESC,
+                risk_score DESC,
+                id ASC
+            """,
+            (incident_id,),
+        ).fetchall()
+
+        evidence_rows = conn.execute(
+            """
+            SELECT
+                id,
+                evidence_type,
+                description,
+                source,
+                source_timestamp,
+                confidence,
+                created_at
+            FROM sar_evidence
+            WHERE incident_id = ?
+            ORDER BY id DESC
+            """,
+            (incident_id,),
+        ).fetchall()
+    finally:
         conn.close()
-        return {"error": "SAR incident not found"}
-
-    zone_rows = conn.execute(
-        """
-        SELECT
-            id,
-            geometry,
-            probability,
-            risk_score,
-            priority,
-            recommended_action,
-            created_at
-        FROM sar_search_zones
-        WHERE incident_id = ?
-        ORDER BY
-            CASE priority
-                WHEN 'HIGH' THEN 1
-                WHEN 'MEDIUM' THEN 2
-                WHEN 'LOW' THEN 3
-                ELSE 4
-            END,
-            probability DESC,
-            risk_score DESC,
-            id ASC
-        """,
-        (incident_id,),
-    ).fetchall()
-
-    evidence_rows = conn.execute(
-        """
-        SELECT
-            id,
-            evidence_type,
-            description,
-            source,
-            source_timestamp,
-            confidence,
-            created_at
-        FROM sar_evidence
-        WHERE incident_id = ?
-        ORDER BY id DESC
-        """,
-        (incident_id,),
-    ).fetchall()
-
-    conn.close()
 
     start_latitude = incident[2]
     start_longitude = incident[3]
@@ -1334,22 +1342,22 @@ def generate_sar_mission_brief_pdf(incident_id: int):
     """Generate and return the SAR Mission Brief PDF for the requested incident."""
 
     conn = get_connection()
-
-    incident = conn.execute(
-        """
-        SELECT
-            id,
-            status,
-            last_known_latitude,
-            last_known_longitude,
-            created_at
-        FROM sar_incidents
-        WHERE id = ?
-        """,
-        (incident_id,),
-    ).fetchone()
-
-    conn.close()
+    try:
+        incident = conn.execute(
+            """
+            SELECT
+                id,
+                status,
+                last_known_latitude,
+                last_known_longitude,
+                created_at
+            FROM sar_incidents
+            WHERE id = ?
+            """,
+            (incident_id,),
+        ).fetchone()
+    finally:
+        conn.close()
 
     if incident is None:
         return {
