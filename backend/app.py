@@ -35,13 +35,14 @@ import os
 from sqlalchemy import create_engine
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///orca_cache.db")
-engine = create_engine(
-    DATABASE_URL,
-    pool_size=20,
-    max_overflow=20,
-    pool_timeout=60,
-    pool_pre_ping=True,
-)
+engine_kwargs = {"pool_pre_ping": True}
+if "sqlite" not in DATABASE_URL:
+    engine_kwargs.update({
+        "pool_size": 20,
+        "max_overflow": 20,
+        "pool_timeout": 60,
+    })
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 
 class DBConnectionProxy:
     def __init__(self, raw_conn, is_postgres):

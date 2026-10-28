@@ -80,7 +80,7 @@ def chat_endpoint(request: ChatRequest):
         except google.api_core.exceptions.ResourceExhausted:
             time.sleep(2)
             try:
-                model_fallback = genai.GenerativeModel("gemini-2.5-flash")
+                model_fallback = genai.GenerativeModel("gemini-3.8-flash")
                 response = model_fallback.generate_content(contents)
                 final_text = response.text
             except google.api_core.exceptions.ResourceExhausted:
